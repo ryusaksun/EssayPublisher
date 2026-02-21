@@ -30,6 +30,40 @@ private enum EssayFormatter {
     }()
 }
 
+private enum EssayParserDateFormatter {
+    private static let parserQueue = DispatchQueue(label: "com.ryuichi.essaypublisher.essay-date-parser")
+
+    private static func make(_ format: String) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = format
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 8 * 3600)
+        return formatter
+    }
+
+    private static let frontmatterFormatters: [DateFormatter] = [
+        make("yyyy-MM-dd HH:mm:ss"),
+        make("yyyy-MM-dd HH:mm"),
+        make("yyyy-MM-dd")
+    ]
+    private static let fileNameFormatter = make("yyyy-MM-dd HH:mm:ss")
+
+    static func parseFrontmatter(_ value: String) -> Date? {
+        parserQueue.sync {
+            for formatter in frontmatterFormatters {
+                if let date = formatter.date(from: value) {
+                    return date
+                }
+            }
+            return nil
+        }
+    }
+
+    static func parseFileName(_ value: String) -> Date? {
+        parserQueue.sync { fileNameFormatter.date(from: value) }
+    }
+}
+
 // MARK: - Essay 模型
 
 struct Essay: Identifiable, Codable, Hashable {
@@ -125,13 +159,7 @@ nonisolated enum EssayParser {
            let match = regex.firstMatch(in: frontmatter, range: NSRange(frontmatter.startIndex..., in: frontmatter)),
            let range = Range(match.range(at: 1), in: frontmatter) {
             let dateStr = String(frontmatter[range])
-            for fmt in ["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm", "yyyy-MM-dd"] {
-                let f = DateFormatter()
-                f.dateFormat = fmt
-                f.locale = Locale(identifier: "en_US_POSIX")
-                f.timeZone = TimeZone(secondsFromGMT: 8 * 3600)
-                if let date = f.date(from: dateStr) { return date }
-            }
+            if let date = EssayParserDateFormatter.parseFrontmatter(dateStr) { return date }
         }
 
         // 回退：从文件名提取
@@ -146,11 +174,7 @@ nonisolated enum EssayParser {
                 let ts = String(fileName[tr])
                 if ts.count == 6 { h = String(ts.prefix(2)); mi = String(ts.dropFirst(2).prefix(2)); s = String(ts.suffix(2)) }
             }
-            let f = DateFormatter()
-            f.dateFormat = "yyyy-MM-dd HH:mm:ss"
-            f.locale = Locale(identifier: "en_US_POSIX")
-            f.timeZone = TimeZone(secondsFromGMT: 8 * 3600)
-            return f.date(from: "\(y)-\(m)-\(d) \(h):\(mi):\(s)")
+            return EssayParserDateFormatter.parseFileName("\(y)-\(m)-\(d) \(h):\(mi):\(s)")
         }
         return nil
     }

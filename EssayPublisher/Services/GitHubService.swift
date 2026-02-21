@@ -31,6 +31,12 @@ actor GitHubService {
 
     private init() {}
 
+    private func responseETag(from response: HTTPURLResponse) -> String? {
+        let value = response.value(forHTTPHeaderField: "ETag")?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let value, !value.isEmpty else { return nil }
+        return value
+    }
+
     // MARK: - 通用请求
 
     func request<T: Decodable>(
@@ -60,6 +66,42 @@ actor GitHubService {
             throw GitHubError.apiError(code: http.statusCode, message: "Unknown error")
         }
         return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    func requestIfModified<T: Decodable>(
+        endpoint: String,
+        ifNoneMatch: String?
+    ) async throws -> (value: T?, isNotModified: Bool, eTag: String?) {
+        let token = AppConfig.githubToken
+        guard AppConfig.isGitHubConfigured else { throw GitHubError.notConfigured }
+        guard let url = URL(string: "\(baseURL)\(endpoint)") else { throw GitHubError.invalidURL }
+
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let ifNoneMatch, !ifNoneMatch.isEmpty {
+            req.setValue(ifNoneMatch, forHTTPHeaderField: "If-None-Match")
+        }
+        req.timeoutInterval = 30
+
+        let (data, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw GitHubError.invalidResponse }
+        let eTag = responseETag(from: http)
+
+        if http.statusCode == 304 {
+            return (nil, true, eTag)
+        }
+
+        guard (200...299).contains(http.statusCode) else {
+            if let err = try? JSONDecoder().decode(GHErrorResponse.self, from: data) {
+                throw GitHubError.apiError(code: http.statusCode, message: err.message)
+            }
+            throw GitHubError.apiError(code: http.statusCode, message: "Unknown error")
+        }
+
+        return (try JSONDecoder().decode(T.self, from: data), false, eTag)
     }
 
     func fetchRawContent(endpoint: String) async throws -> String {

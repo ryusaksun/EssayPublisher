@@ -33,7 +33,14 @@ struct AppConfig: Sendable {
         UserDefaults.standard.string(forKey: "image_repo") ?? "picx-images-hosting"
     }
 
-    nonisolated static let imageBranch = "master"
+    nonisolated static var imageBranch: String {
+        let value = UserDefaults.standard.string(forKey: "image_branch")?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if value.isEmpty {
+            return githubBranch
+        }
+        return value
+    }
     nonisolated static let imagePath = "images"
 
     nonisolated static var cdnType: String {
@@ -98,9 +105,17 @@ struct AppConfig: Sendable {
         UserDefaults.standard.set(branch, forKey: "github_branch")
     }
 
-    nonisolated static func saveImageConfig(imageRepo: String, cdnType: String) {
+    nonisolated static func saveImageConfig(imageRepo: String, cdnType: String, imageBranch: String? = nil) {
         UserDefaults.standard.set(imageRepo, forKey: "image_repo")
         UserDefaults.standard.set(cdnType, forKey: "cdn_type")
+        if let imageBranch {
+            let clean = imageBranch.trimmingCharacters(in: .whitespacesAndNewlines)
+            if clean.isEmpty {
+                UserDefaults.standard.removeObject(forKey: "image_branch")
+            } else {
+                UserDefaults.standard.set(clean, forKey: "image_branch")
+            }
+        }
     }
 
     nonisolated static func resetToDefaults() {
@@ -108,6 +123,7 @@ struct AppConfig: Sendable {
         UserDefaults.standard.removeObject(forKey: "github_repo")
         UserDefaults.standard.removeObject(forKey: "github_branch")
         UserDefaults.standard.removeObject(forKey: "image_repo")
+        UserDefaults.standard.removeObject(forKey: "image_branch")
         UserDefaults.standard.removeObject(forKey: "cdn_type")
     }
 }

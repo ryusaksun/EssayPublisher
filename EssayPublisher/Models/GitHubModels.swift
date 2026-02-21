@@ -42,6 +42,19 @@ struct GHDeleteResponse: Decodable, Sendable {
     }
 }
 
+struct GHCommitSummary: Decodable, Sendable {
+    let sha: String
+}
+
+struct GHCommitDetailResponse: Decodable, Sendable {
+    let files: [GHCommitChangedFile]?
+}
+
+struct GHCommitChangedFile: Decodable, Sendable {
+    let filename: String
+    let status: String?
+}
+
 // MARK: - 业务模型
 
 struct FileContent: Sendable {

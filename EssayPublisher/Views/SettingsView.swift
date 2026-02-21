@@ -163,7 +163,11 @@ struct TokenSettingsView: View {
             VStack(spacing: 0) {
                 settingsSubTopBar(title: "GitHub Token", dismiss: dismiss) {
                     let clean = vm.token.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !clean.isEmpty { AppConfig.saveGitHubToken(clean) }
+                    if clean.isEmpty {
+                        _ = AppConfig.deleteGitHubToken()
+                    } else {
+                        AppConfig.saveGitHubToken(clean)
+                    }
                     dismiss()
                 }
 
@@ -293,6 +297,23 @@ struct ImageRepoSettingsView: View {
                             .foregroundStyle(Theme.textPrimary)
                         Spacer()
                         TextField("", text: $vm.imageRepo)
+                            .font(.system(size: 16))
+                            .foregroundStyle(Theme.textPrimary)
+                            .multilineTextAlignment(.trailing)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .tint(.white)
+                    }
+                    .padding(.vertical, 14)
+
+                    Divider().background(Theme.divider)
+
+                    HStack {
+                        Text("Image Branch")
+                            .font(.system(size: 16))
+                            .foregroundStyle(Theme.textPrimary)
+                        Spacer()
+                        TextField("", text: $vm.imageBranch)
                             .font(.system(size: 16))
                             .foregroundStyle(Theme.textPrimary)
                             .multilineTextAlignment(.trailing)

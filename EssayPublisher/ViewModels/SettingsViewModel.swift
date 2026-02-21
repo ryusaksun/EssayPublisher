@@ -13,6 +13,7 @@ final class SettingsViewModel: ObservableObject {
     @Published var repo = ""
     @Published var branch = ""
     @Published var imageRepo = ""
+    @Published var imageBranch = ""
     @Published var cdnType = ""
 
     @Published var isVerifying = false
@@ -27,6 +28,7 @@ final class SettingsViewModel: ObservableObject {
         repo = AppConfig.githubRepo
         branch = AppConfig.githubBranch
         imageRepo = AppConfig.imageRepo
+        imageBranch = AppConfig.imageBranch
         cdnType = AppConfig.cdnType
     }
 
@@ -57,6 +59,8 @@ final class SettingsViewModel: ObservableObject {
         let cleanToken = token.trimmingCharacters(in: .whitespacesAndNewlines)
         if !cleanToken.isEmpty {
             AppConfig.saveGitHubToken(cleanToken)
+        } else {
+            _ = AppConfig.deleteGitHubToken()
         }
         AppConfig.saveRepoConfig(
             owner: owner.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -65,7 +69,8 @@ final class SettingsViewModel: ObservableObject {
         )
         AppConfig.saveImageConfig(
             imageRepo: imageRepo.trimmingCharacters(in: .whitespacesAndNewlines),
-            cdnType: cdnType
+            cdnType: cdnType,
+            imageBranch: imageBranch.trimmingCharacters(in: .whitespacesAndNewlines)
         )
         showSaved = true
         UINotificationFeedbackGenerator().notificationOccurred(.success)

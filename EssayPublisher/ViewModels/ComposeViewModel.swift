@@ -26,12 +26,20 @@ struct EssayItem {
     let id: String
     let essay: Essay
     var isPending: Bool
+    var failureMessage: String?
     var localImages: [UIImage]  // 本地缩略图（发送时保留，持久化后为空）
 
-    init(id: String = UUID().uuidString, essay: Essay, isPending: Bool, localImages: [UIImage]) {
+    init(
+        id: String = UUID().uuidString,
+        essay: Essay,
+        isPending: Bool,
+        failureMessage: String? = nil,
+        localImages: [UIImage]
+    ) {
         self.id = id
         self.essay = essay
         self.isPending = isPending
+        self.failureMessage = failureMessage
         self.localImages = localImages
     }
 }
@@ -52,7 +60,12 @@ final class ComposeViewModel: ObservableObject {
 
     @Published var text = ""
     @Published var selectedItems: [PhotosPickerItem] = []
-    @Published var attachedImages: [AttachedImage] = []
+    @Published private var cameraImages: [AttachedImage] = []
+    @Published private var pickerImages: [AttachedImage] = []
+
+    var attachedImages: [AttachedImage] {
+        cameraImages + pickerImages
+    }
 
     // MARK: - 发布状态
 
@@ -63,35 +76,62 @@ final class ComposeViewModel: ObservableObject {
     // MARK: - 聊天列表
 
     @Published var items: [ChatItem] = []
+    private var imageLoadTask: Task<Void, Never>?
+    private var imageLoadToken = 0
 
     init() {
         items = []
     }
 
+    deinit {
+        imageLoadTask?.cancel()
+    }
+
     // MARK: - 图片选取
 
     func loadSelectedImages() {
-        Task {
+        imageLoadTask?.cancel()
+        imageLoadToken += 1
+        let token = imageLoadToken
+        let snapshot = selectedItems
+
+        imageLoadTask = Task { [weak self] in
             var images: [AttachedImage] = []
-            for item in selectedItems {
+            images.reserveCapacity(snapshot.count)
+
+            for item in snapshot {
+                if Task.isCancelled { return }
                 if let data = try? await item.loadTransferable(type: Data.self) {
                     images.append(AttachedImage(data: data, image: UIImage(data: data)))
                 }
             }
-            attachedImages = images
+
+            await MainActor.run {
+                guard let self else { return }
+                guard token == self.imageLoadToken else { return }
+                self.pickerImages = images
+            }
         }
     }
 
     func addCameraImage(_ uiImage: UIImage) {
-        guard let data = uiImage.jpegData(compressionQuality: 0.9) else { return }
-        attachedImages.append(AttachedImage(data: data, image: uiImage))
+        guard let data = uiImage.jpegData(compressionQuality: 1.0) else { return }
+        cameraImages.append(AttachedImage(data: data, image: uiImage))
     }
 
     func removeImage(at index: Int) {
         guard attachedImages.indices.contains(index) else { return }
-        attachedImages.remove(at: index)
-        if selectedItems.indices.contains(index) {
-            selectedItems.remove(at: index)
+
+        if index < cameraImages.count {
+            cameraImages.remove(at: index)
+            return
+        }
+
+        let pickerIndex = index - cameraImages.count
+        guard pickerImages.indices.contains(pickerIndex) else { return }
+        pickerImages.remove(at: pickerIndex)
+        if selectedItems.indices.contains(pickerIndex) {
+            selectedItems.remove(at: pickerIndex)
         }
     }
 
@@ -127,7 +167,8 @@ final class ComposeViewModel: ObservableObject {
         // 4. 立即清空输入
         text = ""
         selectedItems = []
-        attachedImages = []
+        cameraImages = []
+        pickerImages = []
         isPublishing = true
 
         // 5. 后台异步发布
@@ -177,6 +218,7 @@ final class ComposeViewModel: ObservableObject {
                             id: oldItem.id,
                             essay: realEssay,
                             isPending: false,
+                            failureMessage: nil,
                             localImages: oldItem.localImages
                         ))
                     }
@@ -195,6 +237,19 @@ final class ComposeViewModel: ObservableObject {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
 
         } catch {
+            if let idx = items.firstIndex(where: {
+                if case .essay(let e) = $0 { return e.essay.fileName == tempFileName }
+                return false
+            }), case .essay(let oldItem) = items[idx] {
+                items[idx] = .essay(EssayItem(
+                    id: oldItem.id,
+                    essay: oldItem.essay,
+                    isPending: false,
+                    failureMessage: error.localizedDescription,
+                    localImages: oldItem.localImages
+                ))
+            }
+
             errorMessage = error.localizedDescription
             showError = true
             UINotificationFeedbackGenerator().notificationOccurred(.error)

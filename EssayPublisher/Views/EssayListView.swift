@@ -29,6 +29,12 @@ struct EssayListView: View {
         let message: String
     }
 
+    private struct RefreshRequest {
+        var forceRefresh: Bool
+        var showLoadingIfNeeded: Bool
+        var showFailureAlertWhenHasRows: Bool
+    }
+
     private enum ViewState: Equatable {
         case loading
         case content
@@ -43,6 +49,7 @@ struct EssayListView: View {
     @State private var operationError: OperationError?
     @State private var didLoad = false
     @State private var isSyncing = false
+    @State private var queuedRefreshRequest: RefreshRequest?
 
     var body: some View {
         NavigationStack {
@@ -80,6 +87,9 @@ struct EssayListView: View {
                 guard !didLoad else { return }
                 didLoad = true
                 await loadEssays()
+            }
+            .onDisappear {
+                queuedRefreshRequest = nil
             }
             .alert("确定删除？", isPresented: .init(
                 get: { deleteTarget != nil },
@@ -185,45 +195,68 @@ struct EssayListView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .refreshable { await refreshEssays() }
+        .refreshable { await refreshEssays(forceRefresh: true) }
     }
 
     // MARK: - 数据操作
 
     private func loadEssays() async {
-        guard !isSyncing else { return }
-        isSyncing = true
-        defer { isSyncing = false }
-
-        // 首屏直接拉取最新数据，避免先展示旧缓存再跳变
-        do {
-            let all = try await EssayService.shared.fetchEssays(forceRefresh: true)
-            applyEssays(Array(all.prefix(10)), animated: false)
-        } catch {
-            // 仅在拉取失败时回退缓存
-            let cached = await EssayService.shared.getCachedEssays()
-            if !cached.isEmpty {
-                applyEssays(Array(cached.prefix(10)), animated: false)
-            } else {
-                viewState = .error(error.localizedDescription)
-            }
+        let cached = await EssayService.shared.getCachedRecentEssays(limit: 10)
+        if !cached.isEmpty {
+            applyEssays(Array(cached.prefix(10)), animated: false)
         }
+
+        await refreshEssays(
+            forceRefresh: false,
+            showLoadingIfNeeded: cached.isEmpty,
+            showFailureAlertWhenHasRows: false
+        )
     }
 
-    private func refreshEssays() async {
-        guard !isSyncing else { return }
-        isSyncing = true
-        defer { isSyncing = false }
+    private func refreshEssays(
+        forceRefresh: Bool = true,
+        showLoadingIfNeeded: Bool = false,
+        showFailureAlertWhenHasRows: Bool = true
+    ) async {
+        if Task.isCancelled { return }
+        if isSyncing {
+            mergeQueuedRefresh(
+                forceRefresh: forceRefresh,
+                showLoadingIfNeeded: showLoadingIfNeeded,
+                showFailureAlertWhenHasRows: showFailureAlertWhenHasRows
+            )
+            return
+        }
+        if showLoadingIfNeeded && rows.isEmpty {
+            viewState = .loading
+        }
 
+        isSyncing = true
+        defer {
+            isSyncing = false
+        }
+
+        if Task.isCancelled { return }
         do {
-            let all = try await EssayService.shared.fetchEssays(forceRefresh: true)
-            applyEssays(Array(all.prefix(10)), animated: false)
+            let recent = try await EssayService.shared.fetchRecentEssays(limit: 10, forceRefresh: forceRefresh)
+            if Task.isCancelled { return }
+            applyEssays(recent, animated: !rows.isEmpty)
         } catch {
+            if Task.isCancelled { return }
             if rows.isEmpty {
                 viewState = .error(error.localizedDescription)
-            } else {
+            } else if showFailureAlertWhenHasRows {
                 operationError = OperationError(message: error.localizedDescription)
             }
+        }
+
+        if let queued = queuedRefreshRequest {
+            queuedRefreshRequest = nil
+            await refreshEssays(
+                forceRefresh: queued.forceRefresh,
+                showLoadingIfNeeded: queued.showLoadingIfNeeded,
+                showFailureAlertWhenHasRows: queued.showFailureAlertWhenHasRows
+            )
         }
     }
 
@@ -267,6 +300,25 @@ struct EssayListView: View {
             withAnimation(.easeInOut(duration: 0.2)) { apply() }
         } else {
             apply()
+        }
+    }
+
+    private func mergeQueuedRefresh(
+        forceRefresh: Bool,
+        showLoadingIfNeeded: Bool,
+        showFailureAlertWhenHasRows: Bool
+    ) {
+        if var queued = queuedRefreshRequest {
+            queued.forceRefresh = queued.forceRefresh || forceRefresh
+            queued.showLoadingIfNeeded = queued.showLoadingIfNeeded || showLoadingIfNeeded
+            queued.showFailureAlertWhenHasRows = queued.showFailureAlertWhenHasRows || showFailureAlertWhenHasRows
+            queuedRefreshRequest = queued
+        } else {
+            queuedRefreshRequest = RefreshRequest(
+                forceRefresh: forceRefresh,
+                showLoadingIfNeeded: showLoadingIfNeeded,
+                showFailureAlertWhenHasRows: showFailureAlertWhenHasRows
+            )
         }
     }
 }

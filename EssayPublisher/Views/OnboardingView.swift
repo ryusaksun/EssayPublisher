@@ -15,6 +15,7 @@ struct OnboardingView: View {
     @State private var repo = "astro_blog"
     @State private var branch = "main"
     @State private var imageRepo = "picx-images-hosting"
+    @State private var imageBranch = "main"
 
     @State private var isVerifying = false
     @State private var verifiedUser: String?
@@ -133,6 +134,7 @@ struct OnboardingView: View {
                 LabeledOnboardingField("Repo", text: $repo)
                 LabeledOnboardingField("Branch", text: $branch)
                 LabeledOnboardingField("Image Repo", text: $imageRepo)
+                LabeledOnboardingField("Image Branch", text: $imageBranch)
             }
         }
         .padding(.horizontal, Theme.horizontalPadding)
@@ -180,7 +182,8 @@ struct OnboardingView: View {
             )
             AppConfig.saveImageConfig(
                 imageRepo: imageRepo.trimmingCharacters(in: .whitespacesAndNewlines),
-                cdnType: "jsdelivr"
+                cdnType: "jsdelivr",
+                imageBranch: imageBranch.trimmingCharacters(in: .whitespacesAndNewlines)
             )
             onboardingCompleted = true
 

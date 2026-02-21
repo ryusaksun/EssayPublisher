@@ -86,6 +86,15 @@ struct EssayBubbleView: View {
                     .padding(.bottom, 6)
                     .padding(.top, hasText ? 0 : 6)
                 }
+
+                if let failure = item.failureMessage {
+                    Text("发布失败: \(failure)")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.destructive)
+                        .lineLimit(2)
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 10)
+                }
             }
             .background(Color.black)
             .clipShape(RoundedRectangle(cornerRadius: 20))
@@ -113,15 +122,9 @@ struct ReplyBubbleView: View {
 
     var body: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("已发布 ✓")
-                    .font(.system(size: 17))
-                    .foregroundStyle(Theme.textPrimary)
-
-                Text("路径: \(reply.filePath)")
-                    .font(.system(size: 17))
-                    .foregroundStyle(Theme.textPrimary)
-            }
+            Text("Sent successfully, Ryuichi")
+                .font(.system(size: 17))
+                .foregroundStyle(Theme.textPrimary)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .background(Theme.surface)

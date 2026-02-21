@@ -33,8 +33,17 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "用于选择图片发布到博客"
         INFOPLIST_KEY_NSCameraUsageDescription: "用于拍照发布到博客"
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         DEVELOPMENT_TEAM: 2FJFJ2WAF8
         CODE_SIGN_STYLE: Automatic
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+
+  EssayPublisherTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: EssayPublisherTests
+    dependencies:
+      - target: EssayPublisher
