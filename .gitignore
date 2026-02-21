@@ -11,5 +11,8 @@ EssayPublisher.xcodeproj/
 # macOS
 .DS_Store
 
+# Secrets
+EssayPublisher/Secrets.swift
+
 # Claude
 .claude/

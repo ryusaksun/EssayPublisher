@@ -12,15 +12,17 @@ final class OAuthService: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     static let shared = OAuthService()
 
-    // MARK: - OAuth 配置（注册 GitHub OAuth App 后填入）
+    // MARK: - OAuth 配置
 
-    private let clientID = "Ov23li8LICF0sB9TEVdW"
-    private let clientSecret = "11b83af5e5e52f39142152c04b75d1a59d2e7657"
+    private let clientID = Secrets.githubClientID
+    private let clientSecret = Secrets.githubClientSecret
     private let callbackScheme = "ogygia"
     private let scope = "repo"
 
     private let authorizeURL = "https://github.com/login/oauth/authorize"
     private let tokenURL = "https://github.com/login/oauth/access_token"
+
+    private var authSession: ASWebAuthenticationSession?
 
     private override init() { super.init() }
 
@@ -33,7 +35,9 @@ final class OAuthService: NSObject, ObservableObject, ASWebAuthenticationPresent
         let username = try await GitHubService.shared.verifyToken(token)
 
         // 保存到 Keychain / UserDefaults
-        AppConfig.saveGitHubToken(token)
+        guard AppConfig.saveGitHubToken(token) else {
+            throw OAuthError.tokenExchangeFailed
+        }
         AppConfig.saveGitHubUsername(username)
 
         return (token, username)
@@ -60,7 +64,9 @@ final class OAuthService: NSObject, ObservableObject, ASWebAuthenticationPresent
             let session = ASWebAuthenticationSession(
                 url: url,
                 callbackURLScheme: callbackScheme
-            ) { callbackURL, error in
+            ) { [weak self] callbackURL, error in
+                self?.authSession = nil
+
                 if let error {
                     if (error as NSError).code == ASWebAuthenticationSessionError.canceledLogin.rawValue {
                         continuation.resume(throwing: OAuthError.userCancelled)
@@ -89,6 +95,7 @@ final class OAuthService: NSObject, ObservableObject, ASWebAuthenticationPresent
 
             session.presentationContextProvider = self
             session.prefersEphemeralWebBrowserSession = false
+            self.authSession = session
             session.start()
         }
     }
@@ -161,12 +168,12 @@ enum OAuthError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL: return "无效的授权 URL"
-        case .userCancelled: return "用户取消了授权"
-        case .authSessionFailed(let msg): return "授权失败: \(msg)"
-        case .invalidCallback: return "无效的回调"
-        case .stateMismatch: return "安全验证失败，请重试"
-        case .tokenExchangeFailed: return "获取 Token 失败"
+        case .invalidURL: return "error.oauth.invalidURL".localized
+        case .userCancelled: return "error.oauth.userCancelled".localized
+        case .authSessionFailed(let msg): return String(format: "error.oauth.authFailed".localized, msg)
+        case .invalidCallback: return "error.oauth.invalidCallback".localized
+        case .stateMismatch: return "error.oauth.stateMismatch".localized
+        case .tokenExchangeFailed: return "error.oauth.tokenFailed".localized
         }
     }
 }

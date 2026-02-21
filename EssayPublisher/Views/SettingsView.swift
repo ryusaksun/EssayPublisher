@@ -8,7 +8,8 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("onboarding_completed") private var onboardingCompleted = true
+    @EnvironmentObject private var languageManager: LanguageManager
+    @AppStorage("onboarding_completed") private var onboardingCompleted = false
     @StateObject private var vm = SettingsViewModel()
     @State private var showSignOutConfirm = false
 
@@ -30,7 +31,7 @@ struct SettingsView: View {
 
                         Spacer()
 
-                        Text("Settings")
+                        Text("settings.title".localized)
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundStyle(Theme.textPrimary)
 
@@ -49,8 +50,8 @@ struct SettingsView: View {
                                 NavigationLink {
                                     DisplayNameSettingsView(vm: vm)
                                 } label: {
-                                    settingsRow(icon: "person", title: "昵称") {
-                                        Text(vm.displayName.isEmpty ? "未设置" : vm.displayName)
+                                    settingsRow(icon: "person", title: "settings.displayName".localized) {
+                                        Text(vm.displayName.isEmpty ? "settings.displayName.notSet".localized : vm.displayName)
                                             .font(.system(size: 15))
                                             .foregroundStyle(Theme.textSecondary)
                                     }
@@ -62,7 +63,7 @@ struct SettingsView: View {
                                 NavigationLink {
                                     AccountSettingsView(vm: vm)
                                 } label: {
-                                    settingsRow(icon: "person.circle", title: "GitHub 账号") {
+                                    settingsRow(icon: "person.circle", title: "settings.githubAccount".localized) {
                                         if !vm.githubUsername.isEmpty {
                                             Text(vm.githubUsername)
                                                 .font(.system(size: 15))
@@ -77,7 +78,7 @@ struct SettingsView: View {
                                 NavigationLink {
                                     RepoSettingsView(vm: vm)
                                 } label: {
-                                    settingsRow(icon: "book.closed", title: "内容仓库") {
+                                    settingsRow(icon: "book.closed", title: "settings.contentRepo".localized) {
                                         Text(vm.repo.isEmpty ? "" : vm.repo)
                                             .font(.system(size: 15))
                                             .foregroundStyle(Theme.textSecondary)
@@ -89,8 +90,21 @@ struct SettingsView: View {
                                 NavigationLink {
                                     ImageRepoSettingsView(vm: vm)
                                 } label: {
-                                    settingsRow(icon: "photo.on.rectangle", title: "图床仓库") {
+                                    settingsRow(icon: "photo.on.rectangle", title: "settings.imageRepo".localized) {
                                         Text(vm.imageRepo.isEmpty ? "" : vm.imageRepo)
+                                            .font(.system(size: 15))
+                                            .foregroundStyle(Theme.textSecondary)
+                                    }
+                                }
+                            }
+
+                            // 语言
+                            settingsGroup {
+                                NavigationLink {
+                                    LanguageSettingsView()
+                                } label: {
+                                    settingsRow(icon: "globe", title: "settings.language".localized) {
+                                        Text(languageManager.currentLanguage.displayName)
                                             .font(.system(size: 15))
                                             .foregroundStyle(Theme.textSecondary)
                                     }
@@ -99,8 +113,8 @@ struct SettingsView: View {
 
                             // 隐私政策
                             settingsGroup {
-                                Link(destination: URL(string: "https://github.com/ryusaksun/astro_blog/blob/main/PRIVACY.md")!) {
-                                    settingsRow(icon: "hand.raised", title: "隐私政策") {
+                                Link(destination: URL(string: AppConfig.privacyPolicyURL)!) {
+                                    settingsRow(icon: "hand.raised", title: "settings.privacyPolicy".localized) {
                                         Image(systemName: "arrow.up.right")
                                             .font(.system(size: 12, weight: .medium))
                                             .foregroundStyle(Theme.textSecondary.opacity(0.5))
@@ -113,7 +127,7 @@ struct SettingsView: View {
                                 Button {
                                     showSignOutConfirm = true
                                 } label: {
-                                    settingsRow(icon: "rectangle.portrait.and.arrow.right", title: "退出登录", tintColor: Theme.destructive) {}
+                                    settingsRow(icon: "rectangle.portrait.and.arrow.right", title: "settings.signOut".localized, tintColor: Theme.destructive) {}
                                 }
                             }
                         }
@@ -125,15 +139,15 @@ struct SettingsView: View {
             }
             .navigationBarHidden(true)
             .onAppear { vm.load() }
-            .alert("退出登录？", isPresented: $showSignOutConfirm) {
-                Button("退出", role: .destructive) {
+            .alert("settings.signOut.confirm".localized, isPresented: $showSignOutConfirm) {
+                Button("settings.signOut.button".localized, role: .destructive) {
                     vm.signOut()
                     onboardingCompleted = false
                     dismiss()
                 }
-                Button("取消", role: .cancel) {}
+                Button("common.cancel".localized, role: .cancel) {}
             } message: {
-                Text("将清除 GitHub 授权和所有配置")
+                Text("settings.signOut.message".localized)
             }
         }
     }
@@ -190,17 +204,17 @@ struct DisplayNameSettingsView: View {
             Theme.background.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                settingsSubTopBar(title: "昵称", dismiss: dismiss) {
+                settingsSubTopBar(title: "settings.displayName".localized, dismiss: dismiss) {
                     vm.save()
                     dismiss()
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("用于主页打招呼和发布成功的提示语")
+                    Text("settings.displayName.subtitle".localized)
                         .font(.system(size: 14))
                         .foregroundStyle(Theme.textSecondary)
 
-                    TextField("你的名字", text: $vm.displayName)
+                    TextField("settings.displayName.placeholder".localized, text: $vm.displayName)
                         .textFieldStyle(ThemeTextFieldStyle())
                         .autocorrectionDisabled()
                 }
@@ -225,7 +239,7 @@ struct AccountSettingsView: View {
             Theme.background.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                settingsSubTopBar(title: "GitHub 账号", dismiss: dismiss) {
+                settingsSubTopBar(title: "settings.githubAccount".localized, dismiss: dismiss) {
                     dismiss()
                 }
 
@@ -233,14 +247,27 @@ struct AccountSettingsView: View {
                     // 当前账号信息
                     if !vm.githubUsername.isEmpty {
                         HStack(spacing: 14) {
-                            Image(systemName: "person.circle.fill")
-                                .font(.system(size: 40))
-                                .foregroundStyle(Theme.textSecondary)
+                            AsyncImage(url: URL(string: "https://github.com/\(vm.githubUsername).png?size=80")) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                case .failure, .empty:
+                                    Image(systemName: "person.circle.fill")
+                                        .font(.system(size: 40))
+                                        .foregroundStyle(Theme.textSecondary)
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
+                            .frame(width: 44, height: 44)
+                            .clipShape(Circle())
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(vm.githubUsername)
                                     .font(.system(size: 18, weight: .medium))
                                     .foregroundStyle(Theme.textPrimary)
-                                Text("已通过 OAuth 授权")
+                                Text("settings.githubAccount.authorized".localized)
                                     .font(.system(size: 13))
                                     .foregroundStyle(.green)
                             }
@@ -264,7 +291,7 @@ struct AccountSettingsView: View {
                                 Image(systemName: "arrow.triangle.2.circlepath")
                                     .font(.system(size: 15))
                             }
-                            Text(vm.isAuthorizing ? "授权中..." : "重新授权")
+                            Text(vm.isAuthorizing ? "settings.githubAccount.authorizing".localized : "settings.githubAccount.reauthorize".localized)
                                 .font(.system(size: 15, weight: .medium))
                         }
                         .foregroundStyle(.white)
@@ -282,8 +309,8 @@ struct AccountSettingsView: View {
             }
         }
         .navigationBarHidden(true)
-        .alert("错误", isPresented: $vm.showError) {
-            Button("好的") {}
+        .alert("common.error".localized, isPresented: $vm.showError) {
+            Button("common.ok".localized) {}
         } message: {
             Text(vm.errorMessage ?? "")
         }
@@ -301,7 +328,7 @@ struct RepoSettingsView: View {
             Theme.background.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                settingsSubTopBar(title: "内容仓库", dismiss: dismiss) {
+                settingsSubTopBar(title: "settings.contentRepo".localized, dismiss: dismiss) {
                     vm.save()
                     dismiss()
                 }
@@ -358,7 +385,7 @@ struct ImageRepoSettingsView: View {
             Theme.background.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                settingsSubTopBar(title: "图床仓库", dismiss: dismiss) {
+                settingsSubTopBar(title: "settings.imageRepo".localized, dismiss: dismiss) {
                     vm.save()
                     dismiss()
                 }
@@ -426,6 +453,58 @@ struct ImageRepoSettingsView: View {
     }
 }
 
+// MARK: - 语言设置页
+
+struct LanguageSettingsView: View {
+    @EnvironmentObject private var languageManager: LanguageManager
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack {
+            Theme.background.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                settingsSubTopBar(title: "settings.language".localized, dismiss: dismiss) {
+                    dismiss()
+                }
+
+                VStack(spacing: 0) {
+                    ForEach(Array(AppLanguage.allCases.enumerated()), id: \.element.id) { index, lang in
+                        Button {
+                            languageManager.currentLanguage = lang
+                        } label: {
+                            HStack {
+                                Text(lang.displayName)
+                                    .font(.system(size: 17))
+                                    .foregroundStyle(Theme.textPrimary)
+                                Spacer()
+                                if languageManager.currentLanguage == lang {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundStyle(Theme.accent)
+                                }
+                            }
+                            .padding(.vertical, 15)
+                        }
+
+                        if index < AppLanguage.allCases.count - 1 {
+                            Divider().background(Theme.divider)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .background(Theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .padding(.horizontal, Theme.horizontalPadding)
+                .padding(.top, 16)
+
+                Spacer()
+            }
+        }
+        .navigationBarHidden(true)
+    }
+}
+
 // MARK: - 子页面顶栏
 
 private func settingsSubTopBar(title: String, dismiss: DismissAction, onSave: @escaping () -> Void) -> some View {
@@ -444,7 +523,7 @@ private func settingsSubTopBar(title: String, dismiss: DismissAction, onSave: @e
             .frame(maxWidth: .infinity)
 
         Button(action: onSave) {
-            Text("保存")
+            Text("common.save".localized)
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
                 .padding(.horizontal, 12)

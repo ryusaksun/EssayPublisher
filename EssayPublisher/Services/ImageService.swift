@@ -98,7 +98,9 @@ actor ImageService {
 
         let originalKB = heicData.count / 1024
         let resultKB = webpData.length / 1024
-        print("🖼️ HEIC → WebP: \(originalKB)KB → \(resultKB)KB")
+        #if DEBUG
+        print("HEIC → WebP: \(originalKB)KB → \(resultKB)KB")
+        #endif
 
         return webpData as Data
     }
@@ -118,7 +120,9 @@ actor ImageService {
         CGImageDestinationAddImage(dest, cgImage, options as CFDictionary)
         guard CGImageDestinationFinalize(dest) else { throw ImageServiceError.compressionFailed }
 
-        print("⚠️ WebP 编码不可用，降级为 JPEG 95%")
+        #if DEBUG
+        print("WebP 编码不可用，降级为 JPEG 95%")
+        #endif
         return jpegData as Data
     }
 
@@ -185,7 +189,9 @@ actor ImageService {
                 finalData = try convertHEICToWebP(imageData)
                 ext = "webp"
             } catch {
-                print("⚠️ HEIC 转换失败: \(error), 使用原图上传")
+                #if DEBUG
+                print("HEIC 转换失败: \(error), 使用原图上传")
+                #endif
             }
         }
 
@@ -211,9 +217,9 @@ enum ImageServiceError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .notConfigured: return "图床配置缺失"
-        case .invalidImage: return "无效的图片"
-        case .compressionFailed: return "图片处理失败"
+        case .notConfigured: return "error.image.notConfigured".localized
+        case .invalidImage: return "error.image.invalidImage".localized
+        case .compressionFailed: return "error.image.compressionFailed".localized
         }
     }
 }

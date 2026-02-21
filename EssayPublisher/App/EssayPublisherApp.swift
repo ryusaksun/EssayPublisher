@@ -7,9 +7,12 @@ import SwiftUI
 
 @main
 struct EssayPublisherApp: App {
+    @StateObject private var languageManager = LanguageManager.shared
+
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environmentObject(languageManager)
                 .preferredColorScheme(.dark)
         }
     }
@@ -24,6 +27,12 @@ struct RootView: View {
             MainView()
         } else {
             OnboardingView()
+                .onAppear {
+                    // Token 丢失时自动重置引导状态
+                    if onboardingCompleted && !AppConfig.isGitHubConfigured {
+                        onboardingCompleted = false
+                    }
+                }
         }
     }
 }

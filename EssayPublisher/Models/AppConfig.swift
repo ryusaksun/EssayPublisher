@@ -24,7 +24,9 @@ struct AppConfig: Sendable {
     }
 
     nonisolated static var githubBranch: String {
-        UserDefaults.standard.string(forKey: "github_branch") ?? "main"
+        let value = UserDefaults.standard.string(forKey: "github_branch")?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return value.isEmpty ? "main" : value
     }
 
     // MARK: - 用户配置
@@ -91,6 +93,7 @@ struct AppConfig: Sendable {
     // MARK: - API
 
     nonisolated static let githubAPIBaseURL = "https://api.github.com"
+    nonisolated static let privacyPolicyURL = "https://github.com/ryusaksun/EssayPublisher/blob/main/PRIVACY.md"
 
     // MARK: - 辅助方法
 
@@ -130,7 +133,12 @@ struct AppConfig: Sendable {
     nonisolated static func saveRepoConfig(owner: String, repo: String, branch: String) {
         UserDefaults.standard.set(owner, forKey: "github_owner")
         UserDefaults.standard.set(repo, forKey: "github_repo")
-        UserDefaults.standard.set(branch, forKey: "github_branch")
+        let clean = branch.trimmingCharacters(in: .whitespacesAndNewlines)
+        if clean.isEmpty {
+            UserDefaults.standard.removeObject(forKey: "github_branch")
+        } else {
+            UserDefaults.standard.set(clean, forKey: "github_branch")
+        }
     }
 
     nonisolated static func saveImageConfig(imageRepo: String, cdnType: String, imageBranch: String? = nil) {
@@ -155,6 +163,7 @@ struct AppConfig: Sendable {
         UserDefaults.standard.removeObject(forKey: "cdn_type")
         UserDefaults.standard.removeObject(forKey: "display_name")
         UserDefaults.standard.removeObject(forKey: "github_username")
+        UserDefaults.standard.removeObject(forKey: "app_language")
     }
 }
 

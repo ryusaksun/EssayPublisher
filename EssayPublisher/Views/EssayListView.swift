@@ -72,7 +72,7 @@ struct EssayListView: View {
                                 .padding()
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else if viewState == .empty {
-                            Text("暂无 Essay")
+                            Text("essayList.empty".localized)
                                 .font(.system(size: 15))
                                 .foregroundStyle(Theme.textSecondary)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -91,27 +91,27 @@ struct EssayListView: View {
             .onDisappear {
                 queuedRefreshRequest = nil
             }
-            .alert("确定删除？", isPresented: .init(
+            .alert("essayList.deleteConfirm".localized, isPresented: .init(
                 get: { deleteTarget != nil },
                 set: { if !$0 { deleteTarget = nil } }
             )) {
-                Button("删除", role: .destructive) {
+                Button("common.delete".localized, role: .destructive) {
                     if let essay = deleteTarget {
                         Task { await deleteEssay(essay) }
                     }
                 }
                 .disabled(deleteTarget.map { deletingFileNames.contains($0.fileName) } ?? false)
-                Button("取消", role: .cancel) { deleteTarget = nil }
+                Button("common.cancel".localized, role: .cancel) { deleteTarget = nil }
             } message: {
                 if let essay = deleteTarget {
                     Text(essay.fileName)
                 }
             }
-            .alert("操作失败", isPresented: .init(
+            .alert("essayList.operationFailed".localized, isPresented: .init(
                 get: { operationError != nil },
                 set: { if !$0 { operationError = nil } }
             ), presenting: operationError) { _ in
-                Button("好的", role: .cancel) {}
+                Button("common.ok".localized, role: .cancel) {}
             } message: { err in
                 Text(err.message)
             }
@@ -132,7 +132,7 @@ struct EssayListView: View {
 
             Spacer()
 
-            Text("Essays")
+            Text("essayList.title".localized)
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
 
@@ -186,7 +186,7 @@ struct EssayListView: View {
                     Button {
                         deleteTarget = row.essay
                     } label: {
-                        Label("删除", systemImage: "trash")
+                        Label("common.delete".localized, systemImage: "trash")
                     }
                     .tint(Theme.destructive)
                     .disabled(deletingFileNames.contains(row.fileName))

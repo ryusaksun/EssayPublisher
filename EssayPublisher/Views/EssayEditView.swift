@@ -9,10 +9,17 @@ import Foundation
 
 struct EssayEditView: View {
     private enum EditorMode: String, CaseIterable, Identifiable {
-        case raw = "编辑"
-        case preview = "预览"
+        case raw
+        case preview
 
         var id: String { rawValue }
+
+        var localizedTitle: String {
+            switch self {
+            case .raw: return "essayEdit.mode.edit".localized
+            case .preview: return "essayEdit.mode.preview".localized
+            }
+        }
     }
 
     let essay: Essay
@@ -55,10 +62,10 @@ struct EssayEditView: View {
             }
         }
         .navigationBarHidden(true)
-        .alert("保存失败", isPresented: $showError) {
-            Button("好的") {}
+        .alert("essayEdit.saveFailed".localized, isPresented: $showError) {
+            Button("common.ok".localized) {}
         } message: {
-            Text(errorMessage ?? "未知错误")
+            Text(errorMessage ?? "common.unknownError".localized)
         }
     }
 
@@ -88,7 +95,7 @@ struct EssayEditView: View {
                         .tint(Theme.textSecondary)
                         .frame(width: 56, height: 44)
                 } else {
-                    Text("保存")
+                    Text("common.save".localized)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(content == essay.rawContent ? Theme.textSecondary : Theme.textPrimary)
                         .padding(.horizontal, 16)
@@ -109,7 +116,7 @@ struct EssayEditView: View {
                 Button {
                     mode = item
                 } label: {
-                    Text(item.rawValue)
+                    Text(item.localizedTitle)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(mode == item ? Theme.textPrimary : Theme.textSecondary)
                         .frame(maxWidth: .infinity, minHeight: 40)
@@ -175,7 +182,7 @@ private struct MarkdownPreviewView: View {
 
     private var parsedBlocks: [Block] {
         let bodyText = removeFrontmatter(from: markdown)
-        guard !bodyText.isEmpty else { return [.text("（空内容）")] }
+        guard !bodyText.isEmpty else { return [.text("essayEdit.emptyContent".localized)] }
 
         let nsText = bodyText as NSString
         let fullRange = NSRange(location: 0, length: nsText.length)
@@ -258,7 +265,7 @@ private struct MarkdownPreviewView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             case .failure:
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("图片加载失败")
+                    Text("essayEdit.imageLoadFailed".localized)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Theme.textSecondary)
                     Text(url.absoluteString)

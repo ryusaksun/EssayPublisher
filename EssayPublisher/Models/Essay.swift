@@ -87,7 +87,7 @@ struct Essay: Identifiable, Codable, Hashable {
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if clean.isEmpty { return "（图片）" }
+        if clean.isEmpty { return "bubble.imageOnly".localized }
         if clean.count > 100 {
             return String(clean.prefix(100)) + "..."
         }

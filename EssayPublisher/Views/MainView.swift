@@ -7,6 +7,7 @@
 import SwiftUI
 
 struct MainView: View {
+    @EnvironmentObject private var languageManager: LanguageManager
     @StateObject private var vm = ComposeViewModel()
     @State private var showSettings = false
     @State private var showEssayList = false
@@ -40,10 +41,10 @@ struct MainView: View {
         .sheet(isPresented: $showEssayList) {
             EssayListView()
         }
-        .alert("发布失败", isPresented: $vm.showError) {
-            Button("好的") {}
+        .alert("main.publishFailed".localized, isPresented: $vm.showError) {
+            Button("common.ok".localized) {}
         } message: {
-            Text(vm.errorMessage ?? "未知错误")
+            Text(vm.errorMessage ?? "common.unknownError".localized)
         }
         .onDisappear {
             scrollWorkItem?.cancel()
@@ -88,10 +89,10 @@ struct MainView: View {
             from: Date()
         ).hour ?? 12
         switch hour {
-        case 5..<12:  return "Good morning"
-        case 12..<18: return "Good afternoon"
-        case 18..<22: return "Good evening"
-        default:      return "Good evening"
+        case 5..<12:  return "main.greeting.morning".localized
+        case 12..<18: return "main.greeting.afternoon".localized
+        case 18..<22: return "main.greeting.evening".localized
+        default:      return "main.greeting.evening".localized
         }
     }
 

@@ -34,6 +34,7 @@ final class SettingsViewModel: ObservableObject {
     }
 
     func authorizeGitHub() {
+        guard !isAuthorizing else { return }
         isAuthorizing = true
         Task {
             do {
@@ -52,13 +53,14 @@ final class SettingsViewModel: ObservableObject {
     func signOut() {
         OAuthService.shared.signOut()
         AppConfig.resetToDefaults()
+        displayName = ""
         githubUsername = ""
         owner = ""
         repo = ""
         branch = ""
         imageRepo = ""
         imageBranch = ""
-        displayName = ""
+        cdnType = ""
     }
 
     func save() {

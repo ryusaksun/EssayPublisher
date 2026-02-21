@@ -117,7 +117,7 @@ actor GitHubService {
 
         let (data, response) = try await URLSession.shared.data(for: req)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw GitHubError.apiError(code: (response as? HTTPURLResponse)?.statusCode ?? 0, message: "获取内容失败")
+            throw GitHubError.apiError(code: (response as? HTTPURLResponse)?.statusCode ?? 0, message: "error.github.fetchFailed".localized)
         }
         guard let content = String(data: data, encoding: .utf8) else { throw GitHubError.invalidContent }
         return content
@@ -135,7 +135,7 @@ actor GitHubService {
 
         let (data, response) = try await URLSession.shared.data(for: req)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw GitHubError.apiError(code: (response as? HTTPURLResponse)?.statusCode ?? 0, message: "Token 无效或已过期")
+            throw GitHubError.apiError(code: (response as? HTTPURLResponse)?.statusCode ?? 0, message: "error.github.tokenInvalid".localized)
         }
         struct User: Decodable { let login: String }
         return try JSONDecoder().decode(User.self, from: data).login
@@ -184,7 +184,7 @@ actor GitHubService {
     func deleteFile(path: String, branch: String? = nil) async throws {
         let br = branch ?? AppConfig.githubBranch
         guard let file = try await getFile(path: path, branch: br) else {
-            throw GitHubError.apiError(code: 404, message: "文件不存在: \(path)")
+            throw GitHubError.apiError(code: 404, message: String(format: "error.github.fileNotFound".localized, path))
         }
         let body: [String: Any] = [
             "message": "Delete: \(path.split(separator: "/").last ?? "")",
@@ -320,11 +320,11 @@ enum GitHubError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .notConfigured: return "GitHub 配置缺失"
-        case .invalidURL: return "无效的 URL"
-        case .invalidResponse: return "无效的响应"
-        case .invalidContent: return "无效的内容"
-        case .apiError(let code, let message): return "GitHub API 错误 (\(code)): \(message)"
+        case .notConfigured: return "error.github.notConfigured".localized
+        case .invalidURL: return "error.github.invalidURL".localized
+        case .invalidResponse: return "error.github.invalidResponse".localized
+        case .invalidContent: return "error.github.invalidContent".localized
+        case .apiError(let code, let message): return String(format: "error.github.apiError".localized, code, message)
         }
     }
 }

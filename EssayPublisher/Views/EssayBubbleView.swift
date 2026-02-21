@@ -28,7 +28,7 @@ struct EssayBubbleView: View {
     @State private var selectedImage: UIImage?
 
     private var hasText: Bool {
-        !item.essay.preview.isEmpty && item.essay.preview != "（图片）"
+        !item.essay.preview.isEmpty && item.essay.preview != "bubble.imageOnly".localized
     }
 
     private var hasImages: Bool {
@@ -88,7 +88,7 @@ struct EssayBubbleView: View {
                 }
 
                 if let failure = item.failureMessage {
-                    Text("发布失败: \(failure)")
+                    Text(String(format: "bubble.publishFailed".localized, failure))
                         .font(.system(size: 12))
                         .foregroundStyle(Theme.destructive)
                         .lineLimit(2)
@@ -123,8 +123,8 @@ struct ReplyBubbleView: View {
     var body: some View {
         HStack {
             Text(AppConfig.displayName.isEmpty
-                 ? "Sent successfully"
-                 : "Sent successfully, \(AppConfig.displayName)")
+                 ? "bubble.sentSuccess".localized
+                 : String(format: "bubble.sentSuccessWithName".localized, AppConfig.displayName))
                 .font(.system(size: 17))
                 .foregroundStyle(Theme.textPrimary)
             .padding(.horizontal, 16)

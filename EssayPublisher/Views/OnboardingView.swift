@@ -41,7 +41,7 @@ struct OnboardingView: View {
                 // 导航按钮
                 HStack(spacing: 16) {
                     if step > 0 && step != 1 {
-                        Button("上一步") {
+                        Button("common.back".localized) {
                             withAnimation { step -= 1 }
                         }
                         .foregroundStyle(Theme.textSecondary)
@@ -53,7 +53,7 @@ struct OnboardingView: View {
                         Button {
                             advanceStep()
                         } label: {
-                            Text(step == 2 ? "完成" : "下一步")
+                            Text(step == 2 ? "onboarding.finish".localized : "onboarding.next".localized)
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 32)
@@ -68,8 +68,8 @@ struct OnboardingView: View {
                 .padding(.bottom, 32)
             }
         }
-        .alert("错误", isPresented: $showError) {
-            Button("好的") {}
+        .alert("common.error".localized, isPresented: $showError) {
+            Button("common.ok".localized) {}
         } message: {
             Text(errorMessage ?? "")
         }
@@ -87,7 +87,7 @@ struct OnboardingView: View {
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
 
-            Text("将想法发布到你的 Astro 博客")
+            Text("onboarding.subtitle".localized)
                 .font(.system(size: 17))
                 .foregroundStyle(Theme.textSecondary)
         }
@@ -95,11 +95,11 @@ struct OnboardingView: View {
 
     private var loginStep: some View {
         VStack(spacing: 24) {
-            Text("连接 GitHub")
+            Text("onboarding.connectGitHub".localized)
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
 
-            Text("授权应用访问你的 GitHub 仓库以发布内容")
+            Text("onboarding.connectGitHub.subtitle".localized)
                 .font(.system(size: 15))
                 .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -112,7 +112,7 @@ struct OnboardingView: View {
                         .font(.system(size: 44))
                         .foregroundStyle(.green)
 
-                    Text("已登录: \(user)")
+                    Text(String(format: "onboarding.loggedIn".localized, user))
                         .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(.green)
                 }
@@ -121,7 +121,7 @@ struct OnboardingView: View {
                 Button {
                     withAnimation { step = 2 }
                 } label: {
-                    Text("继续")
+                    Text("onboarding.continue".localized)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 48)
@@ -144,7 +144,7 @@ struct OnboardingView: View {
                             Image(systemName: "lock.shield")
                                 .font(.system(size: 18))
                         }
-                        Text(isAuthorizing ? "授权中..." : "使用 GitHub 登录")
+                        Text(isAuthorizing ? "onboarding.authorizing".localized : "onboarding.loginWithGitHub".localized)
                             .font(.system(size: 17, weight: .semibold))
                     }
                     .foregroundStyle(.white)
@@ -161,16 +161,16 @@ struct OnboardingView: View {
 
     private var repoStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("基本配置")
+            Text("onboarding.basicConfig".localized)
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
 
-            Text("设置你的昵称和博客仓库")
+            Text("onboarding.basicConfig.subtitle".localized)
                 .font(.system(size: 15))
                 .foregroundStyle(Theme.textSecondary)
 
             VStack(spacing: 12) {
-                LabeledOnboardingField("昵称", text: $displayName, placeholder: "你的名字")
+                LabeledOnboardingField("onboarding.displayName".localized, text: $displayName, placeholder: "onboarding.displayName.placeholder".localized)
                 LabeledOnboardingField("Owner", text: $owner)
                 LabeledOnboardingField("Repo", text: $repo)
                 LabeledOnboardingField("Branch", text: $branch)
@@ -217,6 +217,7 @@ struct OnboardingView: View {
     }
 
     private func startOAuth() {
+        guard !isAuthorizing else { return }
         isAuthorizing = true
         Task {
             do {

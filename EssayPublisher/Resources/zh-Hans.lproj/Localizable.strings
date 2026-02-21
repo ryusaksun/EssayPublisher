@@ -1,0 +1,99 @@
+// MARK: - Common
+"common.ok" = "好的";
+"common.cancel" = "取消";
+"common.save" = "保存";
+"common.delete" = "删除";
+"common.back" = "上一步";
+"common.error" = "错误";
+"common.unknownError" = "未知错误";
+
+// MARK: - Settings
+"settings.title" = "Settings";
+"settings.displayName" = "昵称";
+"settings.displayName.notSet" = "未设置";
+"settings.displayName.subtitle" = "用于主页打招呼和发布成功的提示语";
+"settings.displayName.placeholder" = "你的名字";
+"settings.githubAccount" = "GitHub 账号";
+"settings.githubAccount.authorized" = "已通过 OAuth 授权";
+"settings.githubAccount.authorizing" = "授权中...";
+"settings.githubAccount.reauthorize" = "重新授权";
+"settings.contentRepo" = "内容仓库";
+"settings.imageRepo" = "图床仓库";
+"settings.privacyPolicy" = "隐私政策";
+"settings.signOut" = "退出登录";
+"settings.signOut.confirm" = "退出登录？";
+"settings.signOut.button" = "退出";
+"settings.signOut.message" = "将清除 GitHub 授权和所有配置";
+"settings.language" = "语言";
+"settings.language.followSystem" = "跟随系统";
+
+// MARK: - Onboarding
+"onboarding.subtitle" = "将想法发布到你的 Astro 博客";
+"onboarding.connectGitHub" = "连接 GitHub";
+"onboarding.connectGitHub.subtitle" = "授权应用访问你的 GitHub 仓库以发布内容";
+"onboarding.loggedIn" = "已登录: %@";
+"onboarding.continue" = "继续";
+"onboarding.authorizing" = "授权中...";
+"onboarding.loginWithGitHub" = "使用 GitHub 登录";
+"onboarding.basicConfig" = "基本配置";
+"onboarding.basicConfig.subtitle" = "设置你的昵称和博客仓库";
+"onboarding.displayName" = "昵称";
+"onboarding.displayName.placeholder" = "你的名字";
+"onboarding.finish" = "完成";
+"onboarding.next" = "下一步";
+
+// MARK: - Main
+"main.greeting.morning" = "早上好";
+"main.greeting.afternoon" = "下午好";
+"main.greeting.evening" = "晚上好";
+"main.publishFailed" = "发布失败";
+
+// MARK: - Essay List
+"essayList.title" = "Essays";
+"essayList.empty" = "暂无 Essay";
+"essayList.deleteConfirm" = "确定删除？";
+"essayList.operationFailed" = "操作失败";
+
+// MARK: - Essay Edit
+"essayEdit.saveFailed" = "保存失败";
+"essayEdit.mode.edit" = "编辑";
+"essayEdit.mode.preview" = "预览";
+"essayEdit.emptyContent" = "（空内容）";
+"essayEdit.imageLoadFailed" = "图片加载失败";
+
+// MARK: - Bubble
+"bubble.imageOnly" = "（图片）";
+"bubble.publishFailed" = "发布失败: %@";
+"bubble.sentSuccess" = "发送成功";
+"bubble.sentSuccessWithName" = "发送成功, %@";
+
+// MARK: - Error: OAuth
+"error.oauth.invalidURL" = "无效的授权 URL";
+"error.oauth.userCancelled" = "用户取消了授权";
+"error.oauth.authFailed" = "授权失败: %@";
+"error.oauth.invalidCallback" = "无效的回调";
+"error.oauth.stateMismatch" = "安全验证失败，请重试";
+"error.oauth.tokenFailed" = "获取 Token 失败";
+
+// MARK: - Error: GitHub
+"error.github.notConfigured" = "GitHub 配置缺失";
+"error.github.invalidURL" = "无效的 URL";
+"error.github.invalidResponse" = "无效的响应";
+"error.github.invalidContent" = "无效的内容";
+"error.github.apiError" = "GitHub API 错误 (%d): %@";
+"error.github.fetchFailed" = "获取内容失败";
+"error.github.tokenInvalid" = "Token 无效或已过期";
+"error.github.fileNotFound" = "文件不存在: %@";
+
+// MARK: - Error: Image
+"error.image.notConfigured" = "图床配置缺失";
+"error.image.invalidImage" = "无效的图片";
+"error.image.compressionFailed" = "图片处理失败";
+
+// MARK: - Error: Essay
+"error.essay.networkError" = "网络错误: %@";
+"error.essay.parseError" = "解析错误: %@";
+"error.essay.fetchFailed" = "获取文章失败（0/%d）";
+"error.essay.recentFetchFailed" = "获取最近文章失败（0/%d）";
+"error.essay.parseFailed" = "无法解析 Essay";
+"error.essay.fileNotFound" = "文件不存在";

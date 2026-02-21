@@ -1,0 +1,99 @@
+// MARK: - Common
+"common.ok" = "OK";
+"common.cancel" = "Cancel";
+"common.save" = "Save";
+"common.delete" = "Delete";
+"common.back" = "Back";
+"common.error" = "Error";
+"common.unknownError" = "Unknown error";
+
+// MARK: - Settings
+"settings.title" = "Settings";
+"settings.displayName" = "Display Name";
+"settings.displayName.notSet" = "Not set";
+"settings.displayName.subtitle" = "Used for home greeting and publish confirmation";
+"settings.displayName.placeholder" = "Your name";
+"settings.githubAccount" = "GitHub Account";
+"settings.githubAccount.authorized" = "Authorized via OAuth";
+"settings.githubAccount.authorizing" = "Authorizing...";
+"settings.githubAccount.reauthorize" = "Re-authorize";
+"settings.contentRepo" = "Content Repo";
+"settings.imageRepo" = "Image Repo";
+"settings.privacyPolicy" = "Privacy Policy";
+"settings.signOut" = "Sign Out";
+"settings.signOut.confirm" = "Sign Out?";
+"settings.signOut.button" = "Sign Out";
+"settings.signOut.message" = "This will clear GitHub authorization and all settings";
+"settings.language" = "Language";
+"settings.language.followSystem" = "Follow System";
+
+// MARK: - Onboarding
+"onboarding.subtitle" = "Publish your thoughts to your Astro blog";
+"onboarding.connectGitHub" = "Connect GitHub";
+"onboarding.connectGitHub.subtitle" = "Authorize the app to access your GitHub repositories for publishing";
+"onboarding.loggedIn" = "Logged in: %@";
+"onboarding.continue" = "Continue";
+"onboarding.authorizing" = "Authorizing...";
+"onboarding.loginWithGitHub" = "Sign in with GitHub";
+"onboarding.basicConfig" = "Basic Setup";
+"onboarding.basicConfig.subtitle" = "Set your display name and blog repository";
+"onboarding.displayName" = "Display Name";
+"onboarding.displayName.placeholder" = "Your name";
+"onboarding.finish" = "Done";
+"onboarding.next" = "Next";
+
+// MARK: - Main
+"main.greeting.morning" = "Good morning";
+"main.greeting.afternoon" = "Good afternoon";
+"main.greeting.evening" = "Good evening";
+"main.publishFailed" = "Publish Failed";
+
+// MARK: - Essay List
+"essayList.title" = "Essays";
+"essayList.empty" = "No essays yet";
+"essayList.deleteConfirm" = "Confirm Delete?";
+"essayList.operationFailed" = "Operation Failed";
+
+// MARK: - Essay Edit
+"essayEdit.saveFailed" = "Save Failed";
+"essayEdit.mode.edit" = "Edit";
+"essayEdit.mode.preview" = "Preview";
+"essayEdit.emptyContent" = "(Empty)";
+"essayEdit.imageLoadFailed" = "Image failed to load";
+
+// MARK: - Bubble
+"bubble.imageOnly" = "(Image)";
+"bubble.publishFailed" = "Publish failed: %@";
+"bubble.sentSuccess" = "Sent successfully";
+"bubble.sentSuccessWithName" = "Sent successfully, %@";
+
+// MARK: - Error: OAuth
+"error.oauth.invalidURL" = "Invalid authorization URL";
+"error.oauth.userCancelled" = "Authorization cancelled";
+"error.oauth.authFailed" = "Authorization failed: %@";
+"error.oauth.invalidCallback" = "Invalid callback";
+"error.oauth.stateMismatch" = "Security verification failed, please retry";
+"error.oauth.tokenFailed" = "Failed to obtain token";
+
+// MARK: - Error: GitHub
+"error.github.notConfigured" = "GitHub not configured";
+"error.github.invalidURL" = "Invalid URL";
+"error.github.invalidResponse" = "Invalid response";
+"error.github.invalidContent" = "Invalid content";
+"error.github.apiError" = "GitHub API error (%d): %@";
+"error.github.fetchFailed" = "Failed to fetch content";
+"error.github.tokenInvalid" = "Token is invalid or expired";
+"error.github.fileNotFound" = "File not found: %@";
+
+// MARK: - Error: Image
+"error.image.notConfigured" = "Image repo not configured";
+"error.image.invalidImage" = "Invalid image";
+"error.image.compressionFailed" = "Image compression failed";
+
+// MARK: - Error: Essay
+"error.essay.networkError" = "Network error: %@";
+"error.essay.parseError" = "Parse error: %@";
+"error.essay.fetchFailed" = "Failed to fetch essays (0/%d)";
+"error.essay.recentFetchFailed" = "Failed to fetch recent essays (0/%d)";
+"error.essay.parseFailed" = "Failed to parse essay";
+"error.essay.fileNotFound" = "File not found";

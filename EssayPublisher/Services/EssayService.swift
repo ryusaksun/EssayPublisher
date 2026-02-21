@@ -112,7 +112,7 @@ actor EssayService {
                 )
             }
             if essays.isEmpty, !mdFiles.isEmpty {
-                throw EssayError.networkError("获取文章失败（0/\(mdFiles.count)）")
+                throw EssayError.networkError(String(format: "error.essay.fetchFailed".localized, mdFiles.count))
             }
 
             let sorted = essays.sorted { $0.pubDate > $1.pubDate }
@@ -255,7 +255,7 @@ actor EssayService {
             }
 
             if limited.isEmpty {
-                throw EssayError.networkError("获取最近文章失败（0/\(safeLimit)）")
+                throw EssayError.networkError(String(format: "error.essay.recentFetchFailed".localized, safeLimit))
             }
 
             updateCacheWithRecent(limited, shaByFileName: resolvedSHAs)
@@ -278,7 +278,7 @@ actor EssayService {
         let endpoint = "/repos/\(AppConfig.githubOwner)/\(AppConfig.githubRepo)/contents/\(essaysPath)/\(fileName)?ref=\(AppConfig.githubBranch)"
         let content = try await GitHubService.shared.fetchRawContent(endpoint: endpoint)
         guard let essay = EssayParser.parse(rawContent: content, fileName: fileName) else {
-            throw EssayError.parseError("无法解析 Essay")
+            throw EssayError.parseError("error.essay.parseFailed".localized)
         }
         return essay
     }
@@ -308,7 +308,7 @@ actor EssayService {
     func updateEssay(fileName: String, newContent: String) async throws {
         let path = "\(essaysPath)/\(fileName)"
         guard let file = try await GitHubService.shared.getFile(path: path, branch: AppConfig.githubBranch) else {
-            throw EssayError.networkError("文件不存在")
+            throw EssayError.networkError("error.essay.fileNotFound".localized)
         }
         let updateResult = try await GitHubService.shared.createOrUpdateFile(
             path: path, content: newContent,
@@ -810,8 +810,8 @@ enum EssayError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .networkError(let msg): return "网络错误: \(msg)"
-        case .parseError(let msg): return "解析错误: \(msg)"
+        case .networkError(let msg): return String(format: "error.essay.networkError".localized, msg)
+        case .parseError(let msg): return String(format: "error.essay.parseError".localized, msg)
         }
     }
 }
