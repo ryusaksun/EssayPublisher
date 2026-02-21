@@ -3,7 +3,7 @@
 //  EssayPublisher
 //
 //  发布逻辑：即时显示气泡 + 后台异步发布 + 成功回复
-//  历史记录：纯本地存储，不从 GitHub 拉取
+//  聊天记录仅在当前会话内保留，重启后不恢复
 
 import SwiftUI
 import PhotosUI
@@ -16,16 +16,24 @@ enum ChatItem: Identifiable {
 
     var id: String {
         switch self {
-        case .essay(let e): return "essay-\(e.essay.id)"
+        case .essay(let e): return "essay-\(e.id)"
         case .reply(let r): return "reply-\(r.id)"
         }
     }
 }
 
 struct EssayItem {
+    let id: String
     let essay: Essay
     var isPending: Bool
     var localImages: [UIImage]  // 本地缩略图（发送时保留，持久化后为空）
+
+    init(id: String = UUID().uuidString, essay: Essay, isPending: Bool, localImages: [UIImage]) {
+        self.id = id
+        self.essay = essay
+        self.isPending = isPending
+        self.localImages = localImages
+    }
 }
 
 struct PublishReply: Codable {
@@ -55,13 +63,6 @@ final class ComposeViewModel: ObservableObject {
     // MARK: - 聊天列表
 
     @Published var items: [ChatItem] = []
-
-    // MARK: - 本地持久化
-
-    private static let localHistoryURL: URL? = {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?
-            .appendingPathComponent("local_history_v2.json")
-    }()
 
     init() {
         items = []
@@ -173,6 +174,7 @@ final class ComposeViewModel: ObservableObject {
                     // 保留缩略图，标记为非 pending
                     if case .essay(let oldItem) = items[idx] {
                         items[idx] = .essay(EssayItem(
+                            id: oldItem.id,
                             essay: realEssay,
                             isPending: false,
                             localImages: oldItem.localImages
@@ -205,64 +207,6 @@ final class ComposeViewModel: ObservableObject {
 
     func clearHistory() {
         items = []
-        if let url = Self.localHistoryURL {
-            try? FileManager.default.removeItem(at: url)
-        }
-    }
-
-    // MARK: - 本地存储
-
-    private struct LocalItem: Codable {
-        let type: String
-        let fileName: String?
-        let rawContent: String?
-        let replyId: String?
-        let filePath: String?
-        let date: Date?
-        let linkedEssayId: String?
-    }
-
-    private static func loadLocalHistory() -> [ChatItem] {
-        guard let url = localHistoryURL,
-              FileManager.default.fileExists(atPath: url.path),
-              let data = try? Data(contentsOf: url),
-              let entries = try? JSONDecoder().decode([LocalItem].self, from: data) else {
-            return []
-        }
-        return entries.compactMap { entry in
-            if entry.type == "essay",
-               let fn = entry.fileName,
-               let raw = entry.rawContent,
-               let essay = EssayParser.parse(rawContent: raw, fileName: fn) {
-                return .essay(EssayItem(essay: essay, isPending: false, localImages: []))
-            } else if entry.type == "reply",
-                      let id = entry.replyId,
-                      let fp = entry.filePath,
-                      let d = entry.date,
-                      let lid = entry.linkedEssayId {
-                return .reply(PublishReply(id: id, filePath: fp, date: d, linkedEssayId: lid))
-            }
-            return nil
-        }
-    }
-
-    private static func saveLocalHistory(_ items: [ChatItem]) {
-        guard let url = localHistoryURL else { return }
-        let entries: [LocalItem] = items.compactMap { item in
-            switch item {
-            case .essay(let e):
-                // 不保存 pending 状态（未完成发布的）的临时 essay
-                if e.isPending { return nil }
-                return LocalItem(type: "essay", fileName: e.essay.fileName, rawContent: e.essay.rawContent,
-                                 replyId: nil, filePath: nil, date: nil, linkedEssayId: nil)
-            case .reply(let r):
-                return LocalItem(type: "reply", fileName: nil, rawContent: nil,
-                                 replyId: r.id, filePath: r.filePath, date: r.date, linkedEssayId: r.linkedEssayId)
-            }
-        }
-        if let data = try? JSONEncoder().encode(entries) {
-            try? data.write(to: url)
-        }
     }
 }
 

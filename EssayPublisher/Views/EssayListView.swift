@@ -8,10 +8,41 @@ import SwiftUI
 
 struct EssayListView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var essays: [Essay] = []
-    @State private var isLoading = true
-    @State private var errorMessage: String?
+
+    private struct EssayListRow: Identifiable, Equatable {
+        let essay: Essay
+        let preview: String
+        let formattedDate: String
+
+        var id: String { essay.fileName }
+        var fileName: String { essay.fileName }
+
+        init(essay: Essay) {
+            self.essay = essay
+            self.preview = essay.preview
+            self.formattedDate = essay.formattedDate
+        }
+    }
+
+    private struct OperationError: Identifiable {
+        let id = UUID()
+        let message: String
+    }
+
+    private enum ViewState: Equatable {
+        case loading
+        case content
+        case empty
+        case error(String)
+    }
+
+    @State private var rows: [EssayListRow] = []
+    @State private var viewState: ViewState = .loading
     @State private var deleteTarget: Essay?
+    @State private var deletingFileNames: Set<String> = []
+    @State private var operationError: OperationError?
+    @State private var didLoad = false
+    @State private var isSyncing = false
 
     var body: some View {
         NavigationStack {
@@ -22,18 +53,18 @@ struct EssayListView: View {
                     topBar
 
                     ZStack {
-                        if isLoading {
+                        if viewState == .loading {
                             ProgressView()
                                 .tint(Theme.textSecondary)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        } else if let error = errorMessage {
+                        } else if case .error(let error) = viewState {
                             Text(error)
                                 .font(.system(size: 15))
                                 .foregroundStyle(Theme.textSecondary)
                                 .multilineTextAlignment(.center)
                                 .padding()
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        } else if essays.isEmpty {
+                        } else if viewState == .empty {
                             Text("暂无 Essay")
                                 .font(.system(size: 15))
                                 .foregroundStyle(Theme.textSecondary)
@@ -42,12 +73,14 @@ struct EssayListView: View {
                             essayList
                         }
                     }
-                    .animation(.easeInOut(duration: 0.3), value: isLoading)
-                    .animation(.easeInOut(duration: 0.3), value: essays.count)
                 }
             }
             .navigationBarHidden(true)
-            .task { await loadEssays() }
+            .task {
+                guard !didLoad else { return }
+                didLoad = true
+                await loadEssays()
+            }
             .alert("确定删除？", isPresented: .init(
                 get: { deleteTarget != nil },
                 set: { if !$0 { deleteTarget = nil } }
@@ -57,11 +90,20 @@ struct EssayListView: View {
                         Task { await deleteEssay(essay) }
                     }
                 }
+                .disabled(deleteTarget.map { deletingFileNames.contains($0.fileName) } ?? false)
                 Button("取消", role: .cancel) { deleteTarget = nil }
             } message: {
                 if let essay = deleteTarget {
                     Text(essay.fileName)
                 }
+            }
+            .alert("操作失败", isPresented: .init(
+                get: { operationError != nil },
+                set: { if !$0 { operationError = nil } }
+            ), presenting: operationError) { _ in
+                Button("好的", role: .cancel) {}
+            } message: { err in
+                Text(err.message)
             }
         }
     }
@@ -96,34 +138,48 @@ struct EssayListView: View {
 
     private var essayList: some View {
         List {
-            ForEach(essays) { essay in
+            ForEach(rows) { row in
                 NavigationLink {
-                    EssayEditView(essay: essay) { updatedEssay in
-                        if let idx = essays.firstIndex(where: { $0.fileName == updatedEssay.fileName }) {
-                            essays[idx] = updatedEssay
+                    EssayEditView(essay: row.essay) { updatedEssay in
+                        if let idx = rows.firstIndex(where: { $0.fileName == updatedEssay.fileName }) {
+                            rows[idx] = EssayListRow(essay: updatedEssay)
                         }
                     }
                 } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(essay.preview)
-                            .font(.system(size: 16))
-                            .foregroundStyle(Theme.textPrimary)
-                            .lineLimit(2)
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(row.preview)
+                                .font(.system(size: 16))
+                                .foregroundStyle(Theme.textPrimary)
+                                .lineLimit(2)
 
-                        Text(essay.formattedDate)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Theme.textSecondary)
+                            Text(row.formattedDate)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Theme.textSecondary)
+                        }
+
+                        Spacer(minLength: 8)
+
+                        if deletingFileNames.contains(row.fileName) {
+                            ProgressView()
+                                .tint(Theme.textSecondary)
+                                .scaleEffect(0.9)
+                        }
                     }
                     .padding(.vertical, 4)
+                    .contentShape(Rectangle())
                 }
+                .disabled(deletingFileNames.contains(row.fileName))
                 .listRowBackground(Theme.background)
                 .listRowSeparatorTint(Theme.divider)
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        deleteTarget = essay
+                    Button {
+                        deleteTarget = row.essay
                     } label: {
                         Label("删除", systemImage: "trash")
                     }
+                    .tint(Theme.destructive)
+                    .disabled(deletingFileNames.contains(row.fileName))
                 }
             }
         }
@@ -135,52 +191,82 @@ struct EssayListView: View {
     // MARK: - 数据操作
 
     private func loadEssays() async {
-        // 先显示缓存数据
-        let cached = await EssayService.shared.getCachedEssays()
-        if !cached.isEmpty {
-            withAnimation {
-                essays = Array(cached.prefix(10))
-                isLoading = false
-            }
-        }
+        guard !isSyncing else { return }
+        isSyncing = true
+        defer { isSyncing = false }
 
-        // 后台静默刷新
+        // 首屏直接拉取最新数据，避免先展示旧缓存再跳变
         do {
             let all = try await EssayService.shared.fetchEssays(forceRefresh: true)
-            withAnimation {
-                essays = Array(all.prefix(10))
-                isLoading = false
-            }
+            applyEssays(Array(all.prefix(10)), animated: false)
         } catch {
-            // 仅在无缓存时显示错误
-            if essays.isEmpty {
-                withAnimation {
-                    errorMessage = error.localizedDescription
-                    isLoading = false
-                }
+            // 仅在拉取失败时回退缓存
+            let cached = await EssayService.shared.getCachedEssays()
+            if !cached.isEmpty {
+                applyEssays(Array(cached.prefix(10)), animated: false)
+            } else {
+                viewState = .error(error.localizedDescription)
             }
         }
     }
 
     private func refreshEssays() async {
+        guard !isSyncing else { return }
+        isSyncing = true
+        defer { isSyncing = false }
+
         do {
             let all = try await EssayService.shared.fetchEssays(forceRefresh: true)
-            withAnimation {
-                essays = Array(all.prefix(10))
-            }
+            applyEssays(Array(all.prefix(10)), animated: false)
         } catch {
-            errorMessage = error.localizedDescription
+            if rows.isEmpty {
+                viewState = .error(error.localizedDescription)
+            } else {
+                operationError = OperationError(message: error.localizedDescription)
+            }
         }
     }
 
     private func deleteEssay(_ essay: Essay) async {
+        guard !deletingFileNames.contains(essay.fileName) else { return }
+        deleteTarget = nil
+
+        deletingFileNames.insert(essay.fileName)
+
         do {
             try await EssayService.shared.deleteEssay(fileName: essay.fileName)
-            withAnimation {
-                essays.removeAll { $0.fileName == essay.fileName }
+            withAnimation(.easeOut(duration: 0.2)) {
+                rows.removeAll { $0.fileName == essay.fileName }
+                viewState = rows.isEmpty ? .empty : .content
             }
         } catch {
-            errorMessage = error.localizedDescription
+            if rows.isEmpty {
+                viewState = .error(error.localizedDescription)
+            } else {
+                operationError = OperationError(message: error.localizedDescription)
+            }
+        }
+
+        deletingFileNames.remove(essay.fileName)
+    }
+
+    private func applyEssays(_ newValue: [Essay], animated: Bool) {
+        let newRows = newValue.map { EssayListRow(essay: $0) }
+        let shouldUpdate = rows != newRows
+        guard shouldUpdate else {
+            viewState = rows.isEmpty ? .empty : .content
+            return
+        }
+
+        let apply = {
+            rows = newRows
+            viewState = newRows.isEmpty ? .empty : .content
+        }
+
+        if animated {
+            withAnimation(.easeInOut(duration: 0.2)) { apply() }
+        } else {
+            apply()
         }
     }
 }

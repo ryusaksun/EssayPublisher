@@ -10,6 +10,8 @@ struct MainView: View {
     @StateObject private var vm = ComposeViewModel()
     @State private var showSettings = false
     @State private var showEssayList = false
+    @State private var hasInitialAutoScroll = false
+    @State private var scrollWorkItem: DispatchWorkItem?
     @FocusState private var inputFocused: Bool
 
     var body: some View {
@@ -42,6 +44,9 @@ struct MainView: View {
             Button("好的") {}
         } message: {
             Text(vm.errorMessage ?? "未知错误")
+        }
+        .onDisappear {
+            scrollWorkItem?.cancel()
         }
     }
 
@@ -119,12 +124,35 @@ struct MainView: View {
                 .padding(.vertical, 12)
             }
             .scrollDismissesKeyboard(.interactively)
+            .onAppear {
+                guard !hasInitialAutoScroll, !vm.items.isEmpty else { return }
+                hasInitialAutoScroll = true
+                scheduleScrollToBottom(proxy, animated: false)
+            }
             .onChange(of: vm.items.count) {
-                if let last = vm.items.last {
-                    withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
-                }
+                guard !vm.items.isEmpty else { return }
+                let animated = hasInitialAutoScroll
+                hasInitialAutoScroll = true
+                scheduleScrollToBottom(proxy, animated: animated)
             }
         }
+    }
+
+    private func scheduleScrollToBottom(_ proxy: ScrollViewProxy, animated: Bool) {
+        scrollWorkItem?.cancel()
+        let targetID = vm.items.last?.id
+        let workItem = DispatchWorkItem {
+            guard let targetID else { return }
+            if animated {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    proxy.scrollTo(targetID, anchor: .bottom)
+                }
+            } else {
+                proxy.scrollTo(targetID, anchor: .bottom)
+            }
+        }
+        scrollWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.03, execute: workItem)
     }
 }
 
