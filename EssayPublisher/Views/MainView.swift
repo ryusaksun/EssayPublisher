@@ -1,0 +1,151 @@
+//
+//  MainView.swift
+//  EssayPublisher
+//
+//  主界面：顶栏 + 历史气泡列表 + 底部输入栏
+
+import SwiftUI
+
+struct MainView: View {
+    @StateObject private var vm = ComposeViewModel()
+    @State private var showSettings = false
+    @State private var showEssayList = false
+    @FocusState private var inputFocused: Bool
+
+    var body: some View {
+        Group {
+            if vm.items.isEmpty {
+                emptyState
+            } else {
+                chatList
+            }
+        }
+        .background(Theme.background.ignoresSafeArea())
+        .safeAreaInset(edge: .top, spacing: 0) {
+            topBar
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            ComposeBarView(vm: vm, isFocused: $inputFocused)
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                inputFocused = true
+            }
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+        }
+        .sheet(isPresented: $showEssayList) {
+            EssayListView()
+        }
+        .alert("发布失败", isPresented: $vm.showError) {
+            Button("好的") {}
+        } message: {
+            Text(vm.errorMessage ?? "未知错误")
+        }
+    }
+
+    // MARK: - 顶栏
+
+    private var topBar: some View {
+        HStack {
+            Button {
+                showSettings = true
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Theme.textPrimary.opacity(0.6))
+                    .frame(width: 44, height: 44)
+            }
+            .glassButton()
+
+            Spacer()
+
+            Button {
+                showEssayList = true
+            } label: {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Theme.textPrimary.opacity(0.6))
+                    .frame(width: 44, height: 44)
+            }
+            .glassButton()
+        }
+        .padding(.horizontal, Theme.horizontalPadding)
+        .padding(.vertical, 6)
+    }
+
+    // MARK: - 空状态（招呼语）
+
+    private var greeting: String {
+        let hour = Calendar.current.dateComponents(
+            in: TimeZone(identifier: "Asia/Shanghai")!,
+            from: Date()
+        ).hour ?? 12
+        switch hour {
+        case 5..<12:  return "Good morning"
+        case 12..<18: return "Good afternoon"
+        case 18..<22: return "Good evening"
+        default:      return "Good evening"
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Spacer()
+            Text("\(greeting),")
+                .font(.system(size: 28, weight: .medium))
+                .foregroundStyle(Theme.textPrimary.opacity(0.8))
+            Text("Ryuichi")
+                .font(.system(size: 28, weight: .medium))
+                .foregroundStyle(Theme.textPrimary.opacity(0.8))
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - 聊天列表
+
+    private var chatList: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(vm.items) { item in
+                        ChatItemView(item: item)
+                            .id(item.id)
+                    }
+                }
+                .padding(.horizontal, Theme.horizontalPadding)
+                .padding(.vertical, 12)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: vm.items.count) {
+                if let last = vm.items.last {
+                    withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Liquid Glass 按钮修饰器
+
+extension View {
+    @ViewBuilder
+    func glassButton() -> some View {
+        if #available(iOS 26, *) {
+            self.glassEffect(.regular.interactive(), in: .circle)
+        } else {
+            self.background(.ultraThinMaterial, in: Circle())
+        }
+    }
+
+    @ViewBuilder
+    func glassCapsule() -> some View {
+        if #available(iOS 26, *) {
+            self.glassEffect(.regular.interactive(), in: .capsule)
+        } else {
+            self.background(.ultraThinMaterial, in: Capsule())
+        }
+    }
+}
