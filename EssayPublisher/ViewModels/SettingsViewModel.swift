@@ -8,7 +8,8 @@ import SwiftUI
 @MainActor
 final class SettingsViewModel: ObservableObject {
 
-    @Published var token = ""
+    @Published var displayName = ""
+    @Published var githubUsername = ""
     @Published var owner = ""
     @Published var repo = ""
     @Published var branch = ""
@@ -16,14 +17,14 @@ final class SettingsViewModel: ObservableObject {
     @Published var imageBranch = ""
     @Published var cdnType = ""
 
-    @Published var isVerifying = false
-    @Published var verifiedUser: String?
+    @Published var isAuthorizing = false
     @Published var errorMessage: String?
     @Published var showError = false
     @Published var showSaved = false
 
     func load() {
-        token = AppConfig.githubToken
+        displayName = AppConfig.displayName
+        githubUsername = AppConfig.githubUsername
         owner = AppConfig.githubOwner
         repo = AppConfig.githubRepo
         branch = AppConfig.githubBranch
@@ -32,36 +33,36 @@ final class SettingsViewModel: ObservableObject {
         cdnType = AppConfig.cdnType
     }
 
-    func verifyToken() {
-        let clean = token.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !clean.isEmpty else {
-            errorMessage = "Token 不能为空"
-            showError = true
-            return
-        }
-
-        isVerifying = true
-        verifiedUser = nil
-
+    func authorizeGitHub() {
+        isAuthorizing = true
         Task {
             do {
-                let user = try await GitHubService.shared.verifyToken(clean)
-                verifiedUser = user
+                let result = try await OAuthService.shared.authorize()
+                githubUsername = result.username
+            } catch let error as OAuthError where error == .userCancelled {
+                // 用户取消，不做处理
             } catch {
                 errorMessage = error.localizedDescription
                 showError = true
             }
-            isVerifying = false
+            isAuthorizing = false
         }
     }
 
+    func signOut() {
+        OAuthService.shared.signOut()
+        AppConfig.resetToDefaults()
+        githubUsername = ""
+        owner = ""
+        repo = ""
+        branch = ""
+        imageRepo = ""
+        imageBranch = ""
+        displayName = ""
+    }
+
     func save() {
-        let cleanToken = token.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !cleanToken.isEmpty {
-            AppConfig.saveGitHubToken(cleanToken)
-        } else {
-            _ = AppConfig.deleteGitHubToken()
-        }
+        AppConfig.saveDisplayName(displayName)
         AppConfig.saveRepoConfig(
             owner: owner.trimmingCharacters(in: .whitespacesAndNewlines),
             repo: repo.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -74,11 +75,5 @@ final class SettingsViewModel: ObservableObject {
         )
         showSaved = true
         UINotificationFeedbackGenerator().notificationOccurred(.success)
-    }
-
-    func resetDefaults() {
-        AppConfig.resetToDefaults()
-        _ = AppConfig.deleteGitHubToken()
-        load()
     }
 }

@@ -98,12 +98,19 @@ struct MainView: View {
     private var emptyState: some View {
         VStack(spacing: 8) {
             Spacer()
-            Text("\(greeting),")
-                .font(.system(size: 28, weight: .medium))
-                .foregroundStyle(Theme.textPrimary.opacity(0.8))
-            Text("Ryuichi")
-                .font(.system(size: 28, weight: .medium))
-                .foregroundStyle(Theme.textPrimary.opacity(0.8))
+            let name = AppConfig.displayName
+            if name.isEmpty {
+                Text(greeting)
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundStyle(Theme.textPrimary.opacity(0.8))
+            } else {
+                Text("\(greeting),")
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundStyle(Theme.textPrimary.opacity(0.8))
+                Text(name)
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundStyle(Theme.textPrimary.opacity(0.8))
+            }
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -16,21 +16,49 @@ struct AppConfig: Sendable {
     }
 
     nonisolated static var githubOwner: String {
-        UserDefaults.standard.string(forKey: "github_owner") ?? "ryusaksun"
+        UserDefaults.standard.string(forKey: "github_owner") ?? ""
     }
 
     nonisolated static var githubRepo: String {
-        UserDefaults.standard.string(forKey: "github_repo") ?? "astro_blog"
+        UserDefaults.standard.string(forKey: "github_repo") ?? ""
     }
 
     nonisolated static var githubBranch: String {
         UserDefaults.standard.string(forKey: "github_branch") ?? "main"
     }
 
+    // MARK: - 用户配置
+
+    nonisolated static var displayName: String {
+        UserDefaults.standard.string(forKey: "display_name") ?? ""
+    }
+
+    nonisolated static func saveDisplayName(_ name: String) {
+        let clean = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if clean.isEmpty {
+            UserDefaults.standard.removeObject(forKey: "display_name")
+        } else {
+            UserDefaults.standard.set(clean, forKey: "display_name")
+        }
+    }
+
+    nonisolated static var githubUsername: String {
+        UserDefaults.standard.string(forKey: "github_username") ?? ""
+    }
+
+    nonisolated static func saveGitHubUsername(_ name: String) {
+        let clean = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if clean.isEmpty {
+            UserDefaults.standard.removeObject(forKey: "github_username")
+        } else {
+            UserDefaults.standard.set(clean, forKey: "github_username")
+        }
+    }
+
     // MARK: - 图床配置（图片仓库）
 
     nonisolated static var imageRepo: String {
-        UserDefaults.standard.string(forKey: "image_repo") ?? "picx-images-hosting"
+        UserDefaults.standard.string(forKey: "image_repo") ?? ""
     }
 
     nonisolated static var imageBranch: String {
@@ -125,6 +153,8 @@ struct AppConfig: Sendable {
         UserDefaults.standard.removeObject(forKey: "image_repo")
         UserDefaults.standard.removeObject(forKey: "image_branch")
         UserDefaults.standard.removeObject(forKey: "cdn_type")
+        UserDefaults.standard.removeObject(forKey: "display_name")
+        UserDefaults.standard.removeObject(forKey: "github_username")
     }
 }
 

@@ -8,8 +8,9 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("onboarding_completed") private var onboardingCompleted = true
     @StateObject private var vm = SettingsViewModel()
-    @State private var showResetConfirm = false
+    @State private var showSignOutConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -43,16 +44,29 @@ struct SettingsView: View {
 
                     ScrollView {
                         VStack(spacing: 24) {
-                            // GitHub Token
+                            // 昵称
                             settingsGroup {
                                 NavigationLink {
-                                    TokenSettingsView(vm: vm)
+                                    DisplayNameSettingsView(vm: vm)
                                 } label: {
-                                    settingsRow(icon: "key", title: "GitHub Token") {
-                                        if vm.verifiedUser != nil {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .foregroundStyle(.green)
-                                                .font(.system(size: 16))
+                                    settingsRow(icon: "person", title: "昵称") {
+                                        Text(vm.displayName.isEmpty ? "未设置" : vm.displayName)
+                                            .font(.system(size: 15))
+                                            .foregroundStyle(Theme.textSecondary)
+                                    }
+                                }
+                            }
+
+                            // GitHub 账号
+                            settingsGroup {
+                                NavigationLink {
+                                    AccountSettingsView(vm: vm)
+                                } label: {
+                                    settingsRow(icon: "person.circle", title: "GitHub 账号") {
+                                        if !vm.githubUsername.isEmpty {
+                                            Text(vm.githubUsername)
+                                                .font(.system(size: 15))
+                                                .foregroundStyle(Theme.textSecondary)
                                         }
                                     }
                                 }
@@ -83,12 +97,23 @@ struct SettingsView: View {
                                 }
                             }
 
-                            // 重置
+                            // 隐私政策
+                            settingsGroup {
+                                Link(destination: URL(string: "https://github.com/ryusaksun/astro_blog/blob/main/PRIVACY.md")!) {
+                                    settingsRow(icon: "hand.raised", title: "隐私政策") {
+                                        Image(systemName: "arrow.up.right")
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                                    }
+                                }
+                            }
+
+                            // 退出登录
                             settingsGroup {
                                 Button {
-                                    showResetConfirm = true
+                                    showSignOutConfirm = true
                                 } label: {
-                                    settingsRow(icon: "arrow.counterclockwise", title: "重置所有配置", tintColor: Theme.destructive) {}
+                                    settingsRow(icon: "rectangle.portrait.and.arrow.right", title: "退出登录", tintColor: Theme.destructive) {}
                                 }
                             }
                         }
@@ -100,11 +125,15 @@ struct SettingsView: View {
             }
             .navigationBarHidden(true)
             .onAppear { vm.load() }
-            .alert("重置所有配置？", isPresented: $showResetConfirm) {
-                Button("重置", role: .destructive) { vm.resetDefaults() }
+            .alert("退出登录？", isPresented: $showSignOutConfirm) {
+                Button("退出", role: .destructive) {
+                    vm.signOut()
+                    onboardingCompleted = false
+                    dismiss()
+                }
                 Button("取消", role: .cancel) {}
             } message: {
-                Text("Token 和所有仓库配置将被清除")
+                Text("将清除 GitHub 授权和所有配置")
             }
         }
     }
@@ -150,9 +179,9 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Token 配置页
+// MARK: - 昵称配置页
 
-struct TokenSettingsView: View {
+struct DisplayNameSettingsView: View {
     @ObservedObject var vm: SettingsViewModel
     @Environment(\.dismiss) private var dismiss
 
@@ -161,51 +190,19 @@ struct TokenSettingsView: View {
             Theme.background.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                settingsSubTopBar(title: "GitHub Token", dismiss: dismiss) {
-                    let clean = vm.token.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if clean.isEmpty {
-                        _ = AppConfig.deleteGitHubToken()
-                    } else {
-                        AppConfig.saveGitHubToken(clean)
-                    }
+                settingsSubTopBar(title: "昵称", dismiss: dismiss) {
+                    vm.save()
                     dismiss()
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("需要一个具有 repo 权限的 Personal Access Token")
+                    Text("用于主页打招呼和发布成功的提示语")
                         .font(.system(size: 14))
                         .foregroundStyle(Theme.textSecondary)
 
-                    SecureField("ghp_...", text: $vm.token)
+                    TextField("你的名字", text: $vm.displayName)
                         .textFieldStyle(ThemeTextFieldStyle())
-                        .textContentType(.password)
                         .autocorrectionDisabled()
-
-                    HStack(spacing: 12) {
-                        Button {
-                            vm.verifyToken()
-                        } label: {
-                            HStack(spacing: 6) {
-                                if vm.isVerifying {
-                                    ProgressView().tint(.white).scaleEffect(0.8)
-                                }
-                                Text(vm.isVerifying ? "验证中..." : "验证 Token")
-                                    .font(.system(size: 15, weight: .medium))
-                            }
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(Theme.surfaceLight)
-                            .clipShape(Capsule())
-                        }
-                        .disabled(vm.isVerifying)
-
-                        if let user = vm.verifiedUser {
-                            Label(user, systemImage: "checkmark.circle.fill")
-                                .font(.system(size: 14))
-                                .foregroundStyle(.green)
-                        }
-                    }
                 }
                 .padding(.horizontal, Theme.horizontalPadding)
                 .padding(.top, 16)
@@ -214,6 +211,82 @@ struct TokenSettingsView: View {
             }
         }
         .navigationBarHidden(true)
+    }
+}
+
+// MARK: - GitHub 账号页
+
+struct AccountSettingsView: View {
+    @ObservedObject var vm: SettingsViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack {
+            Theme.background.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                settingsSubTopBar(title: "GitHub 账号", dismiss: dismiss) {
+                    dismiss()
+                }
+
+                VStack(spacing: 20) {
+                    // 当前账号信息
+                    if !vm.githubUsername.isEmpty {
+                        HStack(spacing: 14) {
+                            Image(systemName: "person.circle.fill")
+                                .font(.system(size: 40))
+                                .foregroundStyle(Theme.textSecondary)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(vm.githubUsername)
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundStyle(Theme.textPrimary)
+                                Text("已通过 OAuth 授权")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(.green)
+                            }
+                            Spacer()
+                        }
+                        .padding(16)
+                        .background(Theme.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+
+                    // 重新授权按钮
+                    Button {
+                        vm.authorizeGitHub()
+                    } label: {
+                        HStack(spacing: 8) {
+                            if vm.isAuthorizing {
+                                ProgressView()
+                                    .tint(.white)
+                                    .scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .font(.system(size: 15))
+                            }
+                            Text(vm.isAuthorizing ? "授权中..." : "重新授权")
+                                .font(.system(size: 15, weight: .medium))
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Theme.surfaceLight)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .disabled(vm.isAuthorizing)
+                }
+                .padding(.horizontal, Theme.horizontalPadding)
+                .padding(.top, 16)
+
+                Spacer()
+            }
+        }
+        .navigationBarHidden(true)
+        .alert("错误", isPresented: $vm.showError) {
+            Button("好的") {}
+        } message: {
+            Text(vm.errorMessage ?? "")
+        }
     }
 }
 

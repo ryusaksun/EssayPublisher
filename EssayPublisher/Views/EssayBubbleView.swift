@@ -122,7 +122,9 @@ struct ReplyBubbleView: View {
 
     var body: some View {
         HStack {
-            Text("Sent successfully, Ryuichi")
+            Text(AppConfig.displayName.isEmpty
+                 ? "Sent successfully"
+                 : "Sent successfully, \(AppConfig.displayName)")
                 .font(.system(size: 17))
                 .foregroundStyle(Theme.textPrimary)
             .padding(.horizontal, 16)

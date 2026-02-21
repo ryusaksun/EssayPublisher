@@ -39,6 +39,7 @@ targets:
         DEVELOPMENT_TEAM: 2FJFJ2WAF8
         CODE_SIGN_STYLE: Automatic
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        INFOPLIST_FILE: EssayPublisher/Info.plist
 
   EssayPublisherTests:
     type: bundle.unit-test

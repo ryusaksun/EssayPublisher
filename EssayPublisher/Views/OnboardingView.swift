@@ -2,7 +2,7 @@
 //  OnboardingView.swift
 //  EssayPublisher
 //
-//  首次启动引导：欢迎 → Token → 仓库配置
+//  首次启动引导：欢迎 → GitHub 登录 → 仓库配置
 
 import SwiftUI
 
@@ -10,15 +10,15 @@ struct OnboardingView: View {
     @AppStorage("onboarding_completed") private var onboardingCompleted = false
 
     @State private var step = 0
-    @State private var token = ""
-    @State private var owner = "ryusaksun"
-    @State private var repo = "astro_blog"
+    @State private var displayName = ""
+    @State private var owner = ""
+    @State private var repo = ""
     @State private var branch = "main"
-    @State private var imageRepo = "picx-images-hosting"
+    @State private var imageRepo = ""
     @State private var imageBranch = "main"
 
-    @State private var isVerifying = false
-    @State private var verifiedUser: String?
+    @State private var isAuthorizing = false
+    @State private var authorizedUser: String?
     @State private var errorMessage: String?
     @State private var showError = false
 
@@ -31,7 +31,7 @@ struct OnboardingView: View {
 
                 switch step {
                 case 0: welcomeStep
-                case 1: tokenStep
+                case 1: loginStep
                 case 2: repoStep
                 default: EmptyView()
                 }
@@ -40,7 +40,7 @@ struct OnboardingView: View {
 
                 // 导航按钮
                 HStack(spacing: 16) {
-                    if step > 0 {
+                    if step > 0 && step != 1 {
                         Button("上一步") {
                             withAnimation { step -= 1 }
                         }
@@ -49,18 +49,20 @@ struct OnboardingView: View {
 
                     Spacer()
 
-                    Button {
-                        advanceStep()
-                    } label: {
-                        Text(step == 2 ? "完成" : "下一步")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 32)
-                            .padding(.vertical, 12)
-                            .background(canAdvance ? Theme.accent : Theme.surfaceLight)
-                            .clipShape(Capsule())
+                    if step != 1 {
+                        Button {
+                            advanceStep()
+                        } label: {
+                            Text(step == 2 ? "完成" : "下一步")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 32)
+                                .padding(.vertical, 12)
+                                .background(canAdvance ? Theme.accent : Theme.surfaceLight)
+                                .clipShape(Capsule())
+                        }
+                        .disabled(!canAdvance)
                     }
-                    .disabled(!canAdvance)
                 }
                 .padding(.horizontal, Theme.horizontalPadding)
                 .padding(.bottom, 32)
@@ -91,45 +93,84 @@ struct OnboardingView: View {
         }
     }
 
-    private var tokenStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("GitHub Token")
+    private var loginStep: some View {
+        VStack(spacing: 24) {
+            Text("连接 GitHub")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
 
-            Text("需要一个具有 repo 权限的 Personal Access Token")
+            Text("授权应用访问你的 GitHub 仓库以发布内容")
                 .font(.system(size: 15))
                 .foregroundStyle(Theme.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Theme.horizontalPadding)
 
-            SecureField("ghp_...", text: $token)
-                .textFieldStyle(ThemeTextFieldStyle())
-                .textContentType(.password)
-                .autocorrectionDisabled()
-
-            if let user = verifiedUser {
-                HStack {
+            if let user = authorizedUser {
+                // 授权成功
+                VStack(spacing: 12) {
                     Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 44))
                         .foregroundStyle(.green)
-                    Text("已验证: \(user)")
+
+                    Text("已登录: \(user)")
+                        .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(.green)
                 }
-                .font(.system(size: 14))
+                .padding(.top, 8)
+
+                Button {
+                    withAnimation { step = 2 }
+                } label: {
+                    Text("继续")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 48)
+                        .padding(.vertical, 12)
+                        .background(Theme.accent)
+                        .clipShape(Capsule())
+                }
+                .padding(.top, 8)
+            } else {
+                // 登录按钮
+                Button {
+                    startOAuth()
+                } label: {
+                    HStack(spacing: 10) {
+                        if isAuthorizing {
+                            ProgressView()
+                                .tint(.white)
+                                .scaleEffect(0.9)
+                        } else {
+                            Image(systemName: "lock.shield")
+                                .font(.system(size: 18))
+                        }
+                        Text(isAuthorizing ? "授权中..." : "使用 GitHub 登录")
+                            .font(.system(size: 17, weight: .semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color(.systemGray))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .disabled(isAuthorizing)
+                .padding(.horizontal, Theme.horizontalPadding)
             }
         }
-        .padding(.horizontal, Theme.horizontalPadding)
     }
 
     private var repoStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("仓库配置")
+            Text("基本配置")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
 
-            Text("配置博客内容仓库和图床仓库")
+            Text("设置你的昵称和博客仓库")
                 .font(.system(size: 15))
                 .foregroundStyle(Theme.textSecondary)
 
             VStack(spacing: 12) {
+                LabeledOnboardingField("昵称", text: $displayName, placeholder: "你的名字")
                 LabeledOnboardingField("Owner", text: $owner)
                 LabeledOnboardingField("Repo", text: $repo)
                 LabeledOnboardingField("Branch", text: $branch)
@@ -145,7 +186,6 @@ struct OnboardingView: View {
     private var canAdvance: Bool {
         switch step {
         case 0: return true
-        case 1: return !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case 2: return !owner.isEmpty && !repo.isEmpty && !branch.isEmpty
         default: return false
         }
@@ -156,25 +196,9 @@ struct OnboardingView: View {
         case 0:
             withAnimation { step = 1 }
 
-        case 1:
-            // 验证 Token
-            let clean = token.trimmingCharacters(in: .whitespacesAndNewlines)
-            isVerifying = true
-            Task {
-                do {
-                    let user = try await GitHubService.shared.verifyToken(clean)
-                    verifiedUser = user
-                    AppConfig.saveGitHubToken(clean)
-                    withAnimation { step = 2 }
-                } catch {
-                    errorMessage = "Token 验证失败: \(error.localizedDescription)"
-                    showError = true
-                }
-                isVerifying = false
-            }
-
         case 2:
             // 保存配置
+            AppConfig.saveDisplayName(displayName)
             AppConfig.saveRepoConfig(
                 owner: owner.trimmingCharacters(in: .whitespacesAndNewlines),
                 repo: repo.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -191,16 +215,44 @@ struct OnboardingView: View {
             break
         }
     }
+
+    private func startOAuth() {
+        isAuthorizing = true
+        Task {
+            do {
+                let result = try await OAuthService.shared.authorize()
+                authorizedUser = result.username
+                // 用 GitHub 用户名预填
+                if displayName.isEmpty { displayName = result.username }
+                if owner.isEmpty { owner = result.username }
+            } catch let error as OAuthError where error == .userCancelled {
+                // 用户取消，不显示错误
+            } catch {
+                errorMessage = error.localizedDescription
+                showError = true
+            }
+            isAuthorizing = false
+        }
+    }
+}
+
+// 让 OAuthError 可比较
+extension OAuthError: Equatable {
+    static func == (lhs: OAuthError, rhs: OAuthError) -> Bool {
+        lhs.localizedDescription == rhs.localizedDescription
+    }
 }
 
 // MARK: - Onboarding 输入框
 
 private struct LabeledOnboardingField: View {
     let label: String
+    let placeholder: String
     @Binding var text: String
 
-    init(_ label: String, text: Binding<String>) {
+    init(_ label: String, text: Binding<String>, placeholder: String? = nil) {
         self.label = label
+        self.placeholder = placeholder ?? label
         self._text = text
     }
 
@@ -209,7 +261,7 @@ private struct LabeledOnboardingField: View {
             Text(label)
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.textSecondary)
-            TextField(label, text: $text)
+            TextField(placeholder, text: $text)
                 .textFieldStyle(ThemeTextFieldStyle())
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
