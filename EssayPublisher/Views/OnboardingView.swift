@@ -90,6 +90,23 @@ struct OnboardingView: View {
             Text("onboarding.subtitle".localized)
                 .font(.system(size: 17))
                 .foregroundStyle(Theme.textSecondary)
+
+            // Demo 模式入口
+            Button {
+                DemoManager.shared.enterDemo()
+            } label: {
+                VStack(spacing: 4) {
+                    Text("demo.tryDemo".localized)
+                        .font(.system(size: 15, weight: .medium))
+                    Text("demo.tryDemo.subtitle".localized)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                .foregroundStyle(Theme.textPrimary.opacity(0.7))
+                .padding(.horizontal, 24)
+                .padding(.vertical, 10)
+            }
+            .padding(.top, 8)
         }
     }
 

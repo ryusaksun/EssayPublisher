@@ -201,6 +201,12 @@ struct EssayListView: View {
     // MARK: - 数据操作
 
     private func loadEssays() async {
+        // Demo 模式：直接使用预置数据
+        if DemoManager.shared.isDemoMode {
+            applyEssays(DemoManager.demoEssays, animated: false)
+            return
+        }
+
         let cached = await EssayService.shared.getCachedRecentEssays(limit: 10)
         if !cached.isEmpty {
             applyEssays(Array(cached.prefix(10)), animated: false)
@@ -218,6 +224,12 @@ struct EssayListView: View {
         showLoadingIfNeeded: Bool = false,
         showFailureAlertWhenHasRows: Bool = true
     ) async {
+        // Demo 模式：直接使用预置数据
+        if DemoManager.shared.isDemoMode {
+            applyEssays(DemoManager.demoEssays, animated: !rows.isEmpty)
+            return
+        }
+
         if Task.isCancelled { return }
         if isSyncing {
             mergeQueuedRefresh(
@@ -263,6 +275,15 @@ struct EssayListView: View {
     private func deleteEssay(_ essay: Essay) async {
         guard !deletingFileNames.contains(essay.fileName) else { return }
         deleteTarget = nil
+
+        // Demo 模式：仅从本地列表移除
+        if DemoManager.shared.isDemoMode {
+            withAnimation(.easeOut(duration: 0.2)) {
+                rows.removeAll { $0.fileName == essay.fileName }
+                viewState = rows.isEmpty ? .empty : .content
+            }
+            return
+        }
 
         deletingFileNames.insert(essay.fileName)
 

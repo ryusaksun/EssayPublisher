@@ -23,6 +23,17 @@ final class SettingsViewModel: ObservableObject {
     @Published var showSaved = false
 
     func load() {
+        if DemoManager.shared.isDemoMode {
+            displayName = DemoManager.demoDisplayName
+            githubUsername = DemoManager.demoUsername
+            owner = DemoManager.demoOwner
+            repo = DemoManager.demoRepo
+            branch = DemoManager.demoBranch
+            imageRepo = DemoManager.demoImageRepo
+            imageBranch = DemoManager.demoBranch
+            cdnType = "jsdelivr"
+            return
+        }
         displayName = AppConfig.displayName
         githubUsername = AppConfig.githubUsername
         owner = AppConfig.githubOwner
@@ -51,6 +62,10 @@ final class SettingsViewModel: ObservableObject {
     }
 
     func signOut() {
+        if DemoManager.shared.isDemoMode {
+            DemoManager.shared.exitDemo()
+            return
+        }
         OAuthService.shared.signOut()
         AppConfig.resetToDefaults()
         displayName = ""
@@ -64,6 +79,12 @@ final class SettingsViewModel: ObservableObject {
     }
 
     func save() {
+        // Demo 模式下不真正保存
+        if DemoManager.shared.isDemoMode {
+            showSaved = true
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            return
+        }
         AppConfig.saveDisplayName(displayName)
         AppConfig.saveRepoConfig(
             owner: owner.trimmingCharacters(in: .whitespacesAndNewlines),

@@ -90,6 +90,14 @@
 "error.image.invalidImage" = "无效的图片";
 "error.image.compressionFailed" = "图片处理失败";
 
+// MARK: - Demo
+"demo.tryDemo" = "体验 Demo";
+"demo.tryDemo.subtitle" = "无需登录，体验全部功能";
+"demo.banner" = "Demo 模式 — 数据为模拟内容";
+"demo.exit" = "退出 Demo";
+"demo.exitConfirm" = "退出 Demo 模式？";
+"demo.exitMessage" = "将返回登录页面";
+
 // MARK: - Error: Essay
 "error.essay.networkError" = "网络错误: %@";
 "error.essay.parseError" = "解析错误: %@";

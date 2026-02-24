@@ -122,9 +122,12 @@ struct ReplyBubbleView: View {
 
     var body: some View {
         HStack {
-            Text(AppConfig.displayName.isEmpty
-                 ? "bubble.sentSuccess".localized
-                 : String(format: "bubble.sentSuccessWithName".localized, AppConfig.displayName))
+            Text({
+                let name = DemoManager.shared.isDemoMode ? DemoManager.demoDisplayName : AppConfig.displayName
+                return name.isEmpty
+                    ? "bubble.sentSuccess".localized
+                    : String(format: "bubble.sentSuccessWithName".localized, name)
+            }())
                 .font(.system(size: 17))
                 .foregroundStyle(Theme.textPrimary)
             .padding(.horizontal, 16)

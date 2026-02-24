@@ -8,6 +8,7 @@ import SwiftUI
 
 struct MainView: View {
     @EnvironmentObject private var languageManager: LanguageManager
+    @ObservedObject private var demoManager = DemoManager.shared
     @StateObject private var vm = ComposeViewModel()
     @State private var showSettings = false
     @State private var showEssayList = false
@@ -25,7 +26,12 @@ struct MainView: View {
         }
         .background(Theme.background.ignoresSafeArea())
         .safeAreaInset(edge: .top, spacing: 0) {
-            topBar
+            VStack(spacing: 0) {
+                topBar
+                if demoManager.isDemoMode {
+                    demoBanner
+                }
+            }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             ComposeBarView(vm: vm, isFocused: $inputFocused)
@@ -81,6 +87,26 @@ struct MainView: View {
         .padding(.vertical, 6)
     }
 
+    // MARK: - Demo 横幅
+
+    private var demoBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "info.circle")
+                .font(.system(size: 13))
+            Text("demo.banner".localized)
+                .font(.system(size: 13))
+            Spacer()
+            Button("demo.exit".localized) {
+                DemoManager.shared.exitDemo()
+            }
+            .font(.system(size: 13, weight: .medium))
+        }
+        .foregroundStyle(.white.opacity(0.9))
+        .padding(.horizontal, Theme.horizontalPadding)
+        .padding(.vertical, 8)
+        .background(Color.orange.opacity(0.8))
+    }
+
     // MARK: - 空状态（招呼语）
 
     private var greeting: String {
@@ -99,7 +125,7 @@ struct MainView: View {
     private var emptyState: some View {
         VStack(spacing: 8) {
             Spacer()
-            let name = AppConfig.displayName
+            let name = demoManager.isDemoMode ? DemoManager.demoDisplayName : AppConfig.displayName
             if name.isEmpty {
                 Text(greeting)
                     .font(.system(size: 28, weight: .medium))

@@ -21,9 +21,12 @@ struct EssayPublisherApp: App {
 /// 根据配置状态切换主界面 / 引导页
 struct RootView: View {
     @AppStorage("onboarding_completed") private var onboardingCompleted = false
+    @ObservedObject private var demoManager = DemoManager.shared
 
     var body: some View {
-        if onboardingCompleted && AppConfig.isGitHubConfigured {
+        if demoManager.isDemoMode {
+            MainView()
+        } else if onboardingCompleted && AppConfig.isGitHubConfigured {
             MainView()
         } else {
             OnboardingView()

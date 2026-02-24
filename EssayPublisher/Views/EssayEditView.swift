@@ -136,6 +136,17 @@ struct EssayEditView: View {
 
     private func save() async {
         isSaving = true
+
+        if DemoManager.shared.isDemoMode {
+            // Demo 模式：仅本地更新，不调用 API
+            if let updated = EssayParser.parse(rawContent: content, fileName: essay.fileName) {
+                onSave(updated)
+            }
+            isSaving = false
+            dismiss()
+            return
+        }
+
         do {
             try await EssayService.shared.updateEssay(fileName: essay.fileName, newContent: content)
             if let updated = EssayParser.parse(rawContent: content, fileName: essay.fileName) {

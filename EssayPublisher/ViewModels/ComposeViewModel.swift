@@ -178,6 +178,12 @@ final class ComposeViewModel: ObservableObject {
     }
 
     private func doPublish(text: String, images: [AttachedImage], tempFileName: String) async {
+        // Demo 模式：模拟发布
+        if DemoManager.shared.isDemoMode {
+            await demoPublish(text: text, tempFileName: tempFileName)
+            return
+        }
+
         do {
             var markdownBody = text
 
@@ -224,6 +230,9 @@ final class ComposeViewModel: ObservableObject {
                     }
                 }
 
+                // 乐观插入 EssayService 缓存，使历史页立即可见
+                await EssayService.shared.insertLocally(realEssay)
+
                 // 追加"已发布"回复
                 let reply = PublishReply(
                     id: UUID().uuidString,
@@ -255,6 +264,49 @@ final class ComposeViewModel: ObservableObject {
             UINotificationFeedbackGenerator().notificationOccurred(.error)
         }
 
+        isPublishing = false
+    }
+
+    // MARK: - Demo 模拟发布
+
+    private func demoPublish(text: String, tempFileName: String) async {
+        try? await Task.sleep(nanoseconds: 800_000_000)
+
+        let now = Date()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd-HHmmss"
+        formatter.timeZone = TimeZone(secondsFromGMT: 8 * 3600)
+        let fileName = "demo-\(formatter.string(from: now))-000.md"
+        let filePath = "src/content/essays/\(fileName)"
+
+        var metadata = Metadata()
+        metadata.reset(for: .essay)
+        let fullContent = metadata.toFrontmatter(for: .essay) + text
+
+        if let realEssay = EssayParser.parse(rawContent: fullContent, fileName: fileName) {
+            if let idx = items.firstIndex(where: {
+                if case .essay(let e) = $0 { return e.essay.fileName == tempFileName }
+                return false
+            }), case .essay(let oldItem) = items[idx] {
+                items[idx] = .essay(EssayItem(
+                    id: oldItem.id,
+                    essay: realEssay,
+                    isPending: false,
+                    failureMessage: nil,
+                    localImages: oldItem.localImages
+                ))
+            }
+
+            let reply = PublishReply(
+                id: UUID().uuidString,
+                filePath: filePath,
+                date: Date(),
+                linkedEssayId: fileName
+            )
+            items.append(.reply(reply))
+        }
+
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
         isPublishing = false
     }
 

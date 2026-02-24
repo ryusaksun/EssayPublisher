@@ -145,6 +145,12 @@ actor EssayService {
             return Array(cachedEssays.prefix(safeLimit))
         }
 
+        // 强制刷新时清除 ETag，确保不会因 304 返回旧数据
+        if forceRefresh {
+            recentCommitsETag = nil
+            fileListETag = nil
+        }
+
         isLoading = true
         defer { isLoading = false }
 

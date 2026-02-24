@@ -9,6 +9,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var languageManager: LanguageManager
+    @ObservedObject private var demoManager = DemoManager.shared
     @AppStorage("onboarding_completed") private var onboardingCompleted = false
     @StateObject private var vm = SettingsViewModel()
     @State private var showSignOutConfirm = false
@@ -122,12 +123,16 @@ struct SettingsView: View {
                                 }
                             }
 
-                            // 退出登录
+                            // 退出登录 / 退出 Demo
                             settingsGroup {
                                 Button {
                                     showSignOutConfirm = true
                                 } label: {
-                                    settingsRow(icon: "rectangle.portrait.and.arrow.right", title: "settings.signOut".localized, tintColor: Theme.destructive) {}
+                                    settingsRow(
+                                        icon: demoManager.isDemoMode ? "xmark.circle" : "rectangle.portrait.and.arrow.right",
+                                        title: demoManager.isDemoMode ? "demo.exit".localized : "settings.signOut".localized,
+                                        tintColor: Theme.destructive
+                                    ) {}
                                 }
                             }
                         }
@@ -139,15 +144,23 @@ struct SettingsView: View {
             }
             .navigationBarHidden(true)
             .onAppear { vm.load() }
-            .alert("settings.signOut.confirm".localized, isPresented: $showSignOutConfirm) {
-                Button("settings.signOut.button".localized, role: .destructive) {
+            .alert(
+                demoManager.isDemoMode ? "demo.exitConfirm".localized : "settings.signOut.confirm".localized,
+                isPresented: $showSignOutConfirm
+            ) {
+                Button(
+                    demoManager.isDemoMode ? "demo.exit".localized : "settings.signOut.button".localized,
+                    role: .destructive
+                ) {
                     vm.signOut()
-                    onboardingCompleted = false
+                    if !demoManager.isDemoMode {
+                        onboardingCompleted = false
+                    }
                     dismiss()
                 }
                 Button("common.cancel".localized, role: .cancel) {}
             } message: {
-                Text("settings.signOut.message".localized)
+                Text(demoManager.isDemoMode ? "demo.exitMessage".localized : "settings.signOut.message".localized)
             }
         }
     }
@@ -278,29 +291,31 @@ struct AccountSettingsView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
 
-                    // 重新授权按钮
-                    Button {
-                        vm.authorizeGitHub()
-                    } label: {
-                        HStack(spacing: 8) {
-                            if vm.isAuthorizing {
-                                ProgressView()
-                                    .tint(.white)
-                                    .scaleEffect(0.8)
-                            } else {
-                                Image(systemName: "arrow.triangle.2.circlepath")
-                                    .font(.system(size: 15))
+                    // 重新授权按钮（Demo 模式下隐藏）
+                    if !DemoManager.shared.isDemoMode {
+                        Button {
+                            vm.authorizeGitHub()
+                        } label: {
+                            HStack(spacing: 8) {
+                                if vm.isAuthorizing {
+                                    ProgressView()
+                                        .tint(.white)
+                                        .scaleEffect(0.8)
+                                } else {
+                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                        .font(.system(size: 15))
+                                }
+                                Text(vm.isAuthorizing ? "settings.githubAccount.authorizing".localized : "settings.githubAccount.reauthorize".localized)
+                                    .font(.system(size: 15, weight: .medium))
                             }
-                            Text(vm.isAuthorizing ? "settings.githubAccount.authorizing".localized : "settings.githubAccount.reauthorize".localized)
-                                .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Theme.surfaceLight)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Theme.surfaceLight)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .disabled(vm.isAuthorizing)
                     }
-                    .disabled(vm.isAuthorizing)
                 }
                 .padding(.horizontal, Theme.horizontalPadding)
                 .padding(.top, 16)

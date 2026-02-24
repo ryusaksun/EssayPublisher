@@ -90,6 +90,14 @@
 "error.image.invalidImage" = "Invalid image";
 "error.image.compressionFailed" = "Image compression failed";
 
+// MARK: - Demo
+"demo.tryDemo" = "Try Demo";
+"demo.tryDemo.subtitle" = "Experience all features without login";
+"demo.banner" = "Demo Mode — Data is simulated";
+"demo.exit" = "Exit Demo";
+"demo.exitConfirm" = "Exit Demo Mode?";
+"demo.exitMessage" = "You will return to the login page";
+
 // MARK: - Error: Essay
 "error.essay.networkError" = "Network error: %@";
 "error.essay.parseError" = "Parse error: %@";
